@@ -14,6 +14,7 @@ dotenv.config();
 
 const connectDB = require("./config/db");
 const tradeRoutes = require("./routes/tradeRoutes");
+const journalRoutes = require("./routes/journalRoutes");
 
 const app = express();
 
@@ -41,6 +42,8 @@ app.get("/api/health", (req, res) => {
 
 // Trade routes
 app.use("/api/trades", tradeRoutes);
+// Journal routes
+app.use("/api/journals", journalRoutes);
 
 // 404 handler
 app.use((req, res) => {
