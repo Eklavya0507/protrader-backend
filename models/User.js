@@ -45,12 +45,20 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Included in every JWT. Incrementing it invalidates all older tokens.
+    tokenVersion: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
   }
 );
 
+// Mongoose 9 async middleware must not use the old next() callback.
 userSchema.pre("save", async function hashPassword() {
   if (!this.isModified("password")) {
     return;

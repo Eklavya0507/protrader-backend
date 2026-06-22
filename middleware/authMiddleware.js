@@ -26,13 +26,27 @@ const protect = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     const user = await User.findById(decoded.id);
 
     if (!user || !user.isActive) {
       return res.status(401).json({
         success: false,
         message: "The account connected to this token is unavailable.",
+      });
+    }
+
+    // Tokens created before this update do not contain tokenVersion.
+    // Treat them as version 0 so existing sessions remain valid until
+    // the user changes their password.
+    const decodedTokenVersion = Number.isInteger(decoded.tokenVersion)
+      ? decoded.tokenVersion
+      : 0;
+
+    if (decodedTokenVersion !== user.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "This session is no longer valid. Please sign in with your new password.",
       });
     }
 

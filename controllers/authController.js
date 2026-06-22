@@ -12,16 +12,45 @@ const publicUser = (user) => ({
   updatedAt: user.updatedAt,
 });
 
-const createToken = (userId) => {
+const createToken = (user) => {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is missing from environment variables");
   }
 
   return jwt.sign(
-    { id: userId },
+    {
+      id: user._id,
+      tokenVersion: user.tokenVersion || 0,
+    },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    }
   );
+};
+
+const validateNewPassword = (password) => {
+  if (password.length < 8) {
+    return "New password must contain at least 8 characters.";
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "New password must contain at least one uppercase letter.";
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return "New password must contain at least one lowercase letter.";
+  }
+
+  if (!/\d/.test(password)) {
+    return "New password must contain at least one number.";
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return "New password must contain at least one special character.";
+  }
+
+  return null;
 };
 
 // POST /api/auth/register
@@ -60,7 +89,7 @@ const register = async (req, res) => {
       password,
     });
 
-    const token = createToken(user._id);
+    const token = createToken(user);
 
     res.status(201).json({
       success: true,
@@ -115,7 +144,7 @@ const login = async (req, res) => {
     user.lastLoginAt = new Date();
     await user.save({ validateBeforeSave: false });
 
-    const token = createToken(user._id);
+    const token = createToken(user);
 
     res.status(200).json({
       success: true,
@@ -208,9 +237,77 @@ const updateMe = async (req, res) => {
   }
 };
 
+// PUT /api/auth/change-password
+const changePassword = async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    const confirmPassword = String(req.body.confirmPassword || "");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Current password, new password and confirmation are required.",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and confirmation do not match.",
+      });
+    }
+
+    const passwordError = validateNewPassword(newPassword);
+
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError,
+      });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    if (await user.comparePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from the current password.",
+      });
+    }
+
+    user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    // This new token is valid for the incremented tokenVersion.
+    // Every older token becomes invalid immediately.
+    const token = createToken(user);
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Password changed successfully. Other signed-in sessions have been invalidated.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // POST /api/auth/logout
-// JWT is stateless. The frontend must remove its stored token.
-// Token revocation can be added later with refresh tokens or a denylist.
 const logout = async (req, res) => {
   res.status(200).json({
     success: true,
@@ -223,5 +320,6 @@ module.exports = {
   login,
   getMe,
   updateMe,
+  changePassword,
   logout,
 };
