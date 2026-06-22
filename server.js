@@ -16,6 +16,7 @@ const connectDB = require("./config/db");
 const tradeRoutes = require("./routes/tradeRoutes");
 const journalRoutes = require("./routes/journalRoutes");
 const settingRoutes = require("./routes/settingRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/trades", tradeRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);
+app.use("/api/auth", authRoutes);
 
 // 404 handler
 app.use((req, res) => {
