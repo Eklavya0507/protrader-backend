@@ -91,19 +91,19 @@ const updateSettings = async (req, res) => {
       });
     }
 
-    const settings = await Setting.findOneAndUpdate(
-      { user: req.user._id },
-      {
-        $set: updates,
-        $setOnInsert: createDefaultSettings(req.user),
-      },
-      {
-        new: true,
-        upsert: true,
-        runValidators: true,
-        setDefaultsOnInsert: true,
-      }
-    );
+    let settings = await Setting.findOne({
+  user: req.user._id,
+});
+
+if (!settings) {
+  settings = await Setting.create(
+    createDefaultSettings(req.user)
+  );
+}
+
+Object.assign(settings, updates);
+
+await settings.save();
 
     res.status(200).json({
       success: true,
