@@ -2,6 +2,13 @@ const mongoose = require("mongoose");
 
 const tradeSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Trade owner is required"],
+      index: true,
+    },
+
     symbol: {
       type: String,
       required: [true, "Symbol is required"],
@@ -126,5 +133,7 @@ const tradeSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+tradeSchema.index({ user: 1, tradeDate: -1, createdAt: -1 });
 
 module.exports = mongoose.model("Trade", tradeSchema);

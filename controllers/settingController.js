@@ -1,7 +1,5 @@
 const Setting = require("../models/Setting");
 
-const SINGLETON_KEY = "global";
-
 const allowedFields = [
   "fullName",
   "email",
@@ -34,11 +32,18 @@ const pickAllowedFields = (body = {}) => {
   return clean;
 };
 
-const getOrCreateSettings = async () => {
-  let settings = await Setting.findOne({ singletonKey: SINGLETON_KEY });
+const createDefaultSettings = (user) => ({
+  user: user._id,
+  singletonKey: `user:${user._id}`,
+  fullName: user.name || "Trader",
+  email: user.email || "",
+});
+
+const getOrCreateSettings = async (user) => {
+  let settings = await Setting.findOne({ user: user._id });
 
   if (!settings) {
-    settings = await Setting.create({ singletonKey: SINGLETON_KEY });
+    settings = await Setting.create(createDefaultSettings(user));
   }
 
   return settings;
@@ -47,7 +52,7 @@ const getOrCreateSettings = async () => {
 // GET /api/settings
 const getSettings = async (req, res) => {
   try {
-    const settings = await getOrCreateSettings();
+    const settings = await getOrCreateSettings(req.user);
 
     res.status(200).json({
       success: true,
@@ -87,10 +92,10 @@ const updateSettings = async (req, res) => {
     }
 
     const settings = await Setting.findOneAndUpdate(
-      { singletonKey: SINGLETON_KEY },
+      { user: req.user._id },
       {
         $set: updates,
-        $setOnInsert: { singletonKey: SINGLETON_KEY },
+        $setOnInsert: createDefaultSettings(req.user),
       },
       {
         new: true,
@@ -116,8 +121,8 @@ const updateSettings = async (req, res) => {
 // POST /api/settings/reset
 const resetSettings = async (req, res) => {
   try {
-    await Setting.deleteOne({ singletonKey: SINGLETON_KEY });
-    const settings = await Setting.create({ singletonKey: SINGLETON_KEY });
+    await Setting.deleteOne({ user: req.user._id });
+    const settings = await Setting.create(createDefaultSettings(req.user));
 
     res.status(200).json({
       success: true,

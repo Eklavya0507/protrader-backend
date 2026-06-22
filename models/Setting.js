@@ -2,9 +2,19 @@ const mongoose = require("mongoose");
 
 const settingSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Settings owner is required"],
+      unique: true,
+      index: true,
+    },
+
+    // Kept for compatibility with the old global settings index.
+    // New users receive a unique value based on their user ID.
     singletonKey: {
       type: String,
-      default: "global",
+      required: true,
       unique: true,
       immutable: true,
     },
@@ -13,7 +23,7 @@ const settingSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 100,
-      default: "Gautam",
+      default: "Trader",
     },
 
     email: {

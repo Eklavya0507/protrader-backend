@@ -14,12 +14,13 @@ const escapeRegex = (value = "") =>
 const normalizeBody = (body = {}) => {
   const normalized = { ...body };
 
-  // Accept either "trade" or "tradeId" from the frontend.
   if (normalized.tradeId && !normalized.trade) {
     normalized.trade = normalized.tradeId;
   }
 
   delete normalized.tradeId;
+  delete normalized.user;
+  delete normalized._id;
 
   if (Array.isArray(normalized.mistakes)) {
     normalized.mistakes = normalized.mistakes
@@ -36,27 +37,34 @@ const normalizeBody = (body = {}) => {
   return normalized;
 };
 
-const validateTrade = async (tradeId) => {
-  if (!tradeId) return { valid: true };
+const validateTrade = async (tradeId, userId) => {
+  if (!tradeId) return { valid: true, trade: null };
 
   if (!mongoose.isValidObjectId(tradeId)) {
     return { valid: false, status: 400, message: "Invalid trade ID" };
   }
 
-  const tradeExists = await Trade.exists({ _id: tradeId });
+  const trade = await Trade.findOne({
+    _id: tradeId,
+    user: userId,
+  }).select("symbol");
 
-  if (!tradeExists) {
-    return { valid: false, status: 404, message: "Linked trade not found" };
+  if (!trade) {
+    return {
+      valid: false,
+      status: 404,
+      message: "Linked trade not found in your account",
+    };
   }
 
-  return { valid: true };
+  return { valid: true, trade };
 };
 
 // POST /api/journals
 const createJournal = async (req, res) => {
   try {
     const body = normalizeBody(req.body);
-    const tradeValidation = await validateTrade(body.trade);
+    const tradeValidation = await validateTrade(body.trade, req.user._id);
 
     if (!tradeValidation.valid) {
       return res.status(tradeValidation.status).json({
@@ -65,13 +73,15 @@ const createJournal = async (req, res) => {
       });
     }
 
-    // Automatically copy the symbol from the linked trade when omitted.
     if (body.trade && !body.symbol) {
-      const linkedTrade = await Trade.findById(body.trade).select("symbol");
-      body.symbol = linkedTrade?.symbol || "";
+      body.symbol = tradeValidation.trade?.symbol || "";
     }
 
-    const journal = await Journal.create(body);
+    const journal = await Journal.create({
+      ...body,
+      user: req.user._id,
+    });
+
     await journal.populate(populateTrade);
 
     res.status(201).json({
@@ -91,7 +101,7 @@ const createJournal = async (req, res) => {
 const getJournals = async (req, res) => {
   try {
     const { trade, entryType, status, search } = req.query;
-    const filter = {};
+    const filter = { user: req.user._id };
 
     if (trade) {
       if (!mongoose.isValidObjectId(trade)) {
@@ -100,6 +110,16 @@ const getJournals = async (req, res) => {
           message: "Invalid trade ID",
         });
       }
+
+      const tradeValidation = await validateTrade(trade, req.user._id);
+
+      if (!tradeValidation.valid) {
+        return res.status(tradeValidation.status).json({
+          success: false,
+          message: tradeValidation.message,
+        });
+      }
+
       filter.trade = trade;
     }
 
@@ -141,6 +161,11 @@ const getJournals = async (req, res) => {
 const getJournalStats = async (req, res) => {
   try {
     const [stats] = await Journal.aggregate([
+      {
+        $match: {
+          user: req.user._id,
+        },
+      },
       {
         $group: {
           _id: null,
@@ -206,9 +231,10 @@ const getJournalById = async (req, res) => {
       });
     }
 
-    const journal = await Journal.findById(req.params.id).populate(
-      populateTrade
-    );
+    const journal = await Journal.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    }).populate(populateTrade);
 
     if (!journal) {
       return res.status(404).json({
@@ -242,7 +268,7 @@ const updateJournal = async (req, res) => {
     const body = normalizeBody(req.body);
 
     if (Object.prototype.hasOwnProperty.call(body, "trade")) {
-      const tradeValidation = await validateTrade(body.trade);
+      const tradeValidation = await validateTrade(body.trade, req.user._id);
 
       if (!tradeValidation.valid) {
         return res.status(tradeValidation.status).json({
@@ -250,12 +276,23 @@ const updateJournal = async (req, res) => {
           message: tradeValidation.message,
         });
       }
+
+      if (body.trade && !body.symbol) {
+        body.symbol = tradeValidation.trade?.symbol || "";
+      }
     }
 
-    const journal = await Journal.findByIdAndUpdate(req.params.id, body, {
-      new: true,
-      runValidators: true,
-    }).populate(populateTrade);
+    const journal = await Journal.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        user: req.user._id,
+      },
+      body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).populate(populateTrade);
 
     if (!journal) {
       return res.status(404).json({
@@ -287,7 +324,10 @@ const deleteJournal = async (req, res) => {
       });
     }
 
-    const journal = await Journal.findByIdAndDelete(req.params.id);
+    const journal = await Journal.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
     if (!journal) {
       return res.status(404).json({

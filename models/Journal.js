@@ -36,6 +36,13 @@ const aiReviewSchema = new mongoose.Schema(
 
 const journalSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Journal owner is required"],
+      index: true,
+    },
+
     title: {
       type: String,
       required: [true, "Journal title is required"],
@@ -155,8 +162,8 @@ const journalSchema = new mongoose.Schema(
   }
 );
 
-journalSchema.index({ journalDate: -1, createdAt: -1 });
-journalSchema.index({ trade: 1 });
+journalSchema.index({ user: 1, journalDate: -1, createdAt: -1 });
+journalSchema.index({ user: 1, trade: 1 });
 journalSchema.index({
   title: "text",
   summary: "text",

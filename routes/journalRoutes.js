@@ -9,7 +9,11 @@ const {
   deleteJournal,
 } = require("../controllers/journalController");
 
+const { protect } = require("../middleware/authMiddleware");
+
 const router = express.Router();
+
+router.use(protect);
 
 router.route("/").post(createJournal).get(getJournals);
 

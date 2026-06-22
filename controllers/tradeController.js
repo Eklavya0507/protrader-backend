@@ -1,10 +1,20 @@
 const mongoose = require("mongoose");
 const Trade = require("../models/Trade");
 
+const cleanUpdates = (body = {}) => {
+  const updates = { ...body };
+  delete updates.user;
+  delete updates._id;
+  return updates;
+};
+
 // POST /api/trades
 const createTrade = async (req, res) => {
   try {
-    const trade = await Trade.create(req.body);
+    const trade = await Trade.create({
+      ...cleanUpdates(req.body),
+      user: req.user._id,
+    });
 
     res.status(201).json({
       success: true,
@@ -22,7 +32,7 @@ const createTrade = async (req, res) => {
 // GET /api/trades
 const getTrades = async (req, res) => {
   try {
-    const trades = await Trade.find().sort({
+    const trades = await Trade.find({ user: req.user._id }).sort({
       tradeDate: -1,
       createdAt: -1,
     });
@@ -50,7 +60,10 @@ const getTradeById = async (req, res) => {
       });
     }
 
-    const trade = await Trade.findById(req.params.id);
+    const trade = await Trade.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
     if (!trade) {
       return res.status(404).json({
@@ -81,9 +94,12 @@ const updateTrade = async (req, res) => {
       });
     }
 
-    const trade = await Trade.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    const trade = await Trade.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        user: req.user._id,
+      },
+      cleanUpdates(req.body),
       {
         new: true,
         runValidators: true,
@@ -120,7 +136,10 @@ const deleteTrade = async (req, res) => {
       });
     }
 
-    const trade = await Trade.findByIdAndDelete(req.params.id);
+    const trade = await Trade.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
     if (!trade) {
       return res.status(404).json({

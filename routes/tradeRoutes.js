@@ -8,13 +8,16 @@ const {
   deleteTrade,
 } = require("../controllers/tradeController");
 
+const { protect } = require("../middleware/authMiddleware");
+
 const router = express.Router();
 
-router.route("/")
-  .post(createTrade)
-  .get(getTrades);
+router.use(protect);
 
-router.route("/:id")
+router.route("/").post(createTrade).get(getTrades);
+
+router
+  .route("/:id")
   .get(getTradeById)
   .put(updateTrade)
   .delete(deleteTrade);
