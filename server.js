@@ -15,6 +15,7 @@ dotenv.config();
 const connectDB = require("./config/db");
 const tradeRoutes = require("./routes/tradeRoutes");
 const journalRoutes = require("./routes/journalRoutes");
+const settingRoutes = require("./routes/settingRoutes");
 
 const app = express();
 
@@ -40,10 +41,10 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Trade routes
+// API routes
 app.use("/api/trades", tradeRoutes);
-// Journal routes
 app.use("/api/journals", journalRoutes);
+app.use("/api/settings", settingRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -60,8 +61,8 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+      console.log(`Server running on port ${PORT}`);
+    });
   } catch (error) {
     console.error("Server startup failed:");
     console.error(error.message);
