@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProTrade Analytics | Professional Trading Journal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['DM Sans', 'sans-serif'] },
+          colors: {
+            background: '#080b0c',
+            surface: '#101415',
+            card: '#151a1d',
+            card2: '#1d2022',
+            line: '#323537',
+            muted: '#aab1b8',
+            text: '#e8edf2',
+            blue: '#0566d9',
+            blueSoft: '#adc6ff',
+            green: '#4edea3',
+            red: '#ffb4ab',
+            navy: '#0f172a'
+          },
+          boxShadow: {
+            glow: '0 0 80px rgba(5,102,217,.22)',
+            soft: '0 24px 80px rgba(0,0,0,.35)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .hero-grid { background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px); background-size: 44px 44px; }
+    .glass { background: linear-gradient(180deg, rgba(29,32,34,.88), rgba(16,20,21,.86)); backdrop-filter: blur(18px); }
+  </style>
+</head>
+<body class="bg-background text-text selection:bg-blue selection:text-white">
+  <div class="fixed inset-0 -z-10 hero-grid opacity-40"></div>
+  <div class="fixed top-[-220px] right-[-220px] -z-10 h-[520px] w-[520px] rounded-full bg-blue/25 blur-[120px]"></div>
+  <div class="fixed bottom-[-260px] left-[-220px] -z-10 h-[520px] w-[520px] rounded-full bg-green/10 blur-[120px]"></div>
+
+  <header class="sticky top-0 z-50 border-b border-line/70 bg-background/75 backdrop-blur-xl">
+    <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+      <a href="dashboard.html" class="flex items-center gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue shadow-glow">
+          <span class="material-symbols-outlined text-white">monitoring</span>
+        </div>
+        <div>
+          <p class="text-xl font-black tracking-tight">ProTrade</p>
+          <p class="text-[10px] font-bold uppercase tracking-[.22em] text-muted">Analytics</p>
+        </div>
+      </a>
+      <div class="hidden items-center gap-8 md:flex">
+        <a class="text-sm font-semibold text-muted hover:text-text" href="#features">Features</a>
+        <a class="text-sm font-semibold text-muted hover:text-text" href="#platform">Platform</a>
+        <a class="text-sm font-semibold text-muted hover:text-text" href="#pricing">Pricing</a>
+        <a class="text-sm font-semibold text-muted hover:text-text" href="#contact">Contact</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="login.html" class="hidden rounded-xl border border-line px-4 py-2 text-sm font-bold text-text hover:bg-card2 sm:inline-flex">Sign In</a>
+        <a href="register.html" class="rounded-xl bg-blue px-4 py-2 text-sm font-bold text-white shadow-glow hover:opacity-90">Create Account</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 lg:grid-cols-2 lg:px-8 lg:py-24">
+      <div>
+        <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-card/80 px-4 py-2 text-sm text-muted">
+          <span class="h-2 w-2 rounded-full bg-green"></span>
+          Professional trading journal for serious traders
+        </div>
+        <h1 class="text-5xl font-black leading-[1.03] tracking-tight sm:text-6xl lg:text-7xl">
+          Track trades. Control risk. Improve your edge.
+        </h1>
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-muted">
+          ProTrade Analytics turns your trading activity into clean dashboards, AI journal insights, performance analytics, psychology tracking, and disciplined risk review.
+        </p>
+        <div class="mt-9 flex flex-col gap-4 sm:flex-row">
+          <a href="login.html" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue px-6 py-4 font-black text-white shadow-glow hover:opacity-90">
+            View Live Dashboard <span class="material-symbols-outlined">arrow_forward</span>
+          </a>
+          <a href="#features" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-line bg-card px-6 py-4 font-black text-text hover:bg-card2">
+            Explore Features
+          </a>
+        </div>
+        <div class="mt-10 grid max-w-xl grid-cols-3 gap-4">
+          <div><p class="text-3xl font-black text-green">68%</p><p class="text-sm text-muted">Win Rate</p></div>
+          <div><p class="text-3xl font-black text-text">142</p><p class="text-sm text-muted">Trades Logged</p></div>
+          <div><p class="text-3xl font-black text-blueSoft">1:2.4</p><p class="text-sm text-muted">Avg R:R</p></div>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div class="absolute inset-0 rounded-[2rem] bg-blue/20 blur-3xl"></div>
+        <div class="glass relative overflow-hidden rounded-[2rem] border border-line shadow-soft">
+          <div class="flex items-center justify-between border-b border-line px-5 py-4">
+            <div><p class="font-black">Performance Overview</p><p class="text-xs text-muted">Q4 trading analytics</p></div>
+            <span class="rounded-full bg-green/15 px-3 py-1 text-xs font-black text-green">PROFITABLE</span>
+          </div>
+          <div class="grid gap-4 p-5 sm:grid-cols-3">
+            <div class="rounded-2xl border border-line bg-card p-4"><p class="text-xs uppercase text-muted">Balance</p><p class="mt-2 text-2xl font-black">$112k</p></div>
+            <div class="rounded-2xl border border-line bg-card p-4"><p class="text-xs uppercase text-muted">P&L</p><p class="mt-2 text-2xl font-black text-green">+$12.8k</p></div>
+            <div class="rounded-2xl border border-line bg-card p-4"><p class="text-xs uppercase text-muted">Drawdown</p><p class="mt-2 text-2xl font-black text-red">-2.4%</p></div>
+          </div>
+          <div class="mx-5 mb-5 rounded-2xl border border-line bg-card p-5">
+            <div class="mb-4 flex items-center justify-between"><p class="font-bold">Equity Curve</p><p class="text-xs text-muted">1M</p></div>
+            <svg viewBox="0 0 720 260" class="h-64 w-full">
+              <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#4edea3" stop-opacity=".3"/><stop offset="100%" stop-color="#4edea3" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0 230 L60 210 L120 222 L180 184 L240 196 L300 150 L360 164 L420 116 L480 130 L540 74 L600 96 L660 42 L720 54" fill="none" stroke="#4edea3" stroke-width="4" stroke-linecap="round"/>
+              <path d="M0 230 L60 210 L120 222 L180 184 L240 196 L300 150 L360 164 L420 116 L480 130 L540 74 L600 96 L660 42 L720 54 L720 260 L0 260 Z" fill="url(#g)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <div class="mb-10 max-w-3xl">
+        <p class="font-bold uppercase tracking-[.22em] text-blueSoft">Features</p>
+        <h2 class="mt-3 text-4xl font-black tracking-tight">Everything a trader needs in one professional workspace.</h2>
+      </div>
+      <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <a href="trades.html" class="rounded-[1.5rem] border border-line bg-card p-6 hover:bg-card2"><span class="material-symbols-outlined text-green">receipt_long</span><h3 class="mt-4 text-xl font-black">Trade Log</h3><p class="mt-2 text-sm leading-6 text-muted">Record entries, exits, setup quality, duration, result, and status.</p></a>
+        <a href="analytics.html" class="rounded-[1.5rem] border border-line bg-card p-6 hover:bg-card2"><span class="material-symbols-outlined text-blueSoft">analytics</span><h3 class="mt-4 text-xl font-black">Analytics</h3><p class="mt-2 text-sm leading-6 text-muted">Review profit factor, distribution, instrument performance, and duration edge.</p></a>
+        <a href="ai-journal.html" class="rounded-[1.5rem] border border-line bg-card p-6 hover:bg-card2"><span class="material-symbols-outlined text-blueSoft">smart_toy</span><h3 class="mt-4 text-xl font-black">AI Journal</h3><p class="mt-2 text-sm leading-6 text-muted">Find patterns in mistakes, emotions, timing, discipline, and performance.</p></a>
+        <a href="psychology.html" class="rounded-[1.5rem] border border-line bg-card p-6 hover:bg-card2"><span class="material-symbols-outlined text-green">psychology</span><h3 class="mt-4 text-xl font-black">Psychology</h3><p class="mt-2 text-sm leading-6 text-muted">Track mood, confidence, discipline, and emotional triggers.</p></a>
+      </div>
+    </section>
+
+    <section id="platform" class="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <div class="grid gap-8 lg:grid-cols-3">
+        <div class="rounded-[1.7rem] border border-line bg-card p-8 lg:col-span-1">
+          <p class="font-bold uppercase tracking-[.22em] text-green">Workflow</p>
+          <h2 class="mt-3 text-3xl font-black">Built for daily review.</h2>
+          <p class="mt-4 leading-7 text-muted">Open the dashboard, log the trade, review weekly performance, and use AI journal notes to improve the next session.</p>
+        </div>
+        <div class="grid gap-5 md:grid-cols-3 lg:col-span-2">
+          <div class="rounded-[1.7rem] border border-line bg-card2 p-6"><p class="text-4xl font-black text-green">01</p><h3 class="mt-4 font-black">Log</h3><p class="mt-2 text-sm text-muted">Capture trade details instantly.</p></div>
+          <div class="rounded-[1.7rem] border border-line bg-card2 p-6"><p class="text-4xl font-black text-blueSoft">02</p><h3 class="mt-4 font-black">Analyze</h3><p class="mt-2 text-sm text-muted">Spot strengths and weaknesses.</p></div>
+          <div class="rounded-[1.7rem] border border-line bg-card2 p-6"><p class="text-4xl font-black text-red">03</p><h3 class="mt-4 font-black">Improve</h3><p class="mt-2 text-sm text-muted">Reduce repeat mistakes.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <div class="rounded-[2rem] border border-line bg-gradient-to-br from-card2 to-surface p-8 shadow-soft lg:p-12">
+        <div class="grid items-center gap-8 lg:grid-cols-2">
+          <div>
+            <p class="font-bold uppercase tracking-[.22em] text-blueSoft">Professional Plan</p>
+            <h2 class="mt-3 text-4xl font-black tracking-tight">Upgrade your trading review system.</h2>
+            <p class="mt-4 text-muted">Use ProTrade as your personal trading command center with dashboards, journal, analytics, calendar, and psychology review.</p>
+          </div>
+          <div class="rounded-[1.5rem] border border-line bg-card p-6">
+            <div class="flex items-end gap-2"><p class="text-5xl font-black">$29</p><p class="pb-2 text-muted">/ month</p></div>
+            <ul class="mt-6 space-y-3 text-sm text-muted">
+              <li>✓ Full trade dashboard</li><li>✓ AI journal review</li><li>✓ Advanced analytics</li><li>✓ Psychology and discipline tracker</li>
+            </ul>
+            <a href="register.html" class="mt-6 inline-flex w-full justify-center rounded-2xl bg-blue px-6 py-4 font-black text-white shadow-glow">Create Account</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <div class="rounded-[2rem] border border-line bg-card p-8 text-center lg:p-12">
+        <h2 class="text-4xl font-black">Ready to make your trading more disciplined?</h2>
+        <p class="mx-auto mt-4 max-w-2xl text-muted">Start with the dashboard demo and explore each connected page from the sidebar.</p>
+        <a href="login.html" class="mt-8 inline-flex items-center gap-2 rounded-2xl bg-blue px-7 py-4 font-black text-white shadow-glow">Sign In to Dashboard <span class="material-symbols-outlined">arrow_forward</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-line py-8">
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 text-sm text-muted md:flex-row lg:px-8">
+      <p>© 2026 ProTrade Analytics. Professional trading journal UI.</p>
+      <div class="flex gap-5"><a href="dashboard.html" class="hover:text-text">Dashboard</a><a href="trades.html" class="hover:text-text">Trades</a><a href="analytics.html" class="hover:text-text">Analytics</a></div>
+    </div>
+  </footer>
+</body>
+</html>

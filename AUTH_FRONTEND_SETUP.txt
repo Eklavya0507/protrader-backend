@@ -1,0 +1,31 @@
+PROTRADE LOGIN + REGISTER FRONTEND
+
+New files:
+- login.html
+- register.html
+- auth.js
+
+Updated protected pages:
+- dashboard.html
+- trades.html
+- calendar.html
+- analytics.html
+- psychology.html
+- ai-journal.html
+- settings.html
+
+What this phase does:
+- Professional login page
+- Professional registration page
+- Stores JWT in sessionStorage
+- Verifies /api/auth/me before opening protected pages
+- Redirects unauthenticated visitors to login.html
+- Adds logout buttons to protected pages
+- Updates visible sidebar user name
+- Provides window.ProTradeAuth.apiFetch() for the next protected-API phase
+
+Important:
+- The current backend Trade, Journal and Settings routes are still public.
+- The next backend phase will add user ownership and require the Bearer token.
+- GitHub OAuth is not included yet.
+- sessionStorage is used, so closing the browser tab signs the user out.

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <script src="auth.js"></script>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>AI Journal | ProTrade Analytics</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #101415; }
+    ::-webkit-scrollbar-thumb { background: #323537; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #45464d; }
+    .chart-container { position: relative; width: 100%; height: 240px; }
+    .glass-header { backdrop-filter: blur(12px); background: rgba(29, 32, 34, 0.8); }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #adc6ff; cursor: pointer; }
+  </style>
+  <script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-secondary-fixed-variant": "#004395", "on-error": "#690005", "secondary-container": "#0566d9", background: "#101415", "on-tertiary-container": "#009365", "primary-fixed": "#dae2fd", "on-background": "#e0e3e5", "on-primary-container": "#798098", "tertiary-container": "#001c10", secondary: "#adc6ff", "inverse-primary": "#565e74", "surface-variant": "#323537", "inverse-on-surface": "#2d3133", "tertiary-fixed-dim": "#4edea3", "primary-container": "#0f172a", surface: "#101415", primary: "#bec6e0", "inverse-surface": "#e0e3e5", "surface-container-lowest": "#0b0f10", "on-primary": "#283044", "error-container": "#93000a", "surface-container": "#1d2022", "on-tertiary-fixed": "#002113", outline: "#909097", "on-secondary-fixed": "#001a42", "on-error-container": "#ffdad6", "on-tertiary-fixed-variant": "#005236", "surface-dim": "#101415", "on-surface-variant": "#c6c6cd", "tertiary-fixed": "#6ffbbe", "surface-container-high": "#272a2c", "surface-tint": "#bec6e0", error: "#ffb4ab", "surface-bright": "#363a3b", "primary-fixed-dim": "#bec6e0", "secondary-fixed": "#d8e2ff", "on-surface": "#e0e3e5", "surface-container-highest": "#323537", tertiary: "#4edea3", "on-tertiary": "#003824", "outline-variant": "#45464d", "on-secondary": "#002e6a", "on-primary-fixed": "#131b2e", "on-secondary-container": "#e6ecff", "surface-container-low": "#191c1e", "on-primary-fixed-variant": "#3f465c", "secondary-fixed-dim": "#adc6ff"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px"}, spacing: {"container-padding": "2rem", "unit-xl": "2.5rem", "unit-sm": "0.5rem", gutter: "1.5rem", "unit-lg": "1.5rem", "unit-xs": "0.25rem", "unit-md": "1rem", "sidebar-width": "280px"}, fontFamily: {"display-lg": ["DM Sans"], "label-uppercase": ["DM Sans"], "body-lg": ["DM Sans"], "headline-lg": ["DM Sans"], "title-md": ["DM Sans"], "headline-lg-mobile": ["DM Sans"], "data-mono": ["DM Sans"], "body-sm": ["DM Sans"], headline: ["DM Sans"], display: ["DM Sans"], body: ["DM Sans"], label: ["DM Sans"]}, fontSize: {"display-lg": ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], "label-uppercase": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], "headline-lg": ["32px", {lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "700"}], "title-md": ["20px", {lineHeight: "1.4", fontWeight: "600"}], "headline-lg-mobile": ["24px", {lineHeight: "1.2", fontWeight: "700"}], "data-mono": ["14px", {lineHeight: "1", letterSpacing: "-0.01em", fontWeight: "500"}], "body-sm": ["14px", {lineHeight: "1.5", fontWeight: "400"}]}}}};</script>
+</head>
+<body class="bg-background text-on-background selection:bg-secondary-container selection:text-on-secondary-container min-h-screen pb-16 md:pb-0">
+<aside class="fixed left-0 top-0 h-full w-[280px] z-50 bg-surface-container-low border-r border-outline-variant flex-col py-unit-lg px-unit-md hidden md:flex">
+  <div class="mb-unit-xl px-unit-sm">
+    <a href="index.html" class="block"><h1 class="font-display-lg text-headline-lg font-black text-primary tracking-tight">ProTrade</h1><p class="font-label-uppercase text-label-uppercase text-on-surface-variant opacity-70">Institutional Grade</p></a>
+  </div>
+  <nav class="flex-1 space-y-unit-xs"><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span class="font-title-md text-body-lg">Dashboard</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span class="font-title-md text-body-lg">Trades</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span class="font-title-md text-body-lg">Calendar</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span class="font-title-md text-body-lg">Analytics</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="psychology.html"><span class="material-symbols-outlined">psychology</span><span class="font-title-md text-body-lg">Psychology</span></a><a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg font-semibold shadow-sm transition-all duration-150" href="ai-journal.html"><span class="material-symbols-outlined">smart_toy</span><span class="font-title-md text-body-lg">AI Journal</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="settings.html"><span class="material-symbols-outlined">settings</span><span class="font-title-md text-body-lg">Settings</span></a></nav>
+  <div class="mt-auto space-y-unit-lg">
+    <a href="dashboard.html" class="w-full py-unit-md px-unit-lg bg-tertiary text-on-tertiary rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-unit-sm"><span class="material-symbols-outlined text-[20px]">workspace_premium</span>Upgrade to Pro</a>
+    <div class="flex items-center gap-unit-md p-unit-sm border-t border-outline-variant pt-unit-lg">
+      <div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden"><span class="material-symbols-outlined text-primary">account_circle</span></div>
+      <div class="flex-1 min-w-0"><p class="font-title-md text-body-sm font-bold text-on-surface truncate"><span class="auth-user-name">Alex Rivera</span></p><p class="font-label-uppercase text-[10px] text-tertiary flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" style='font-variation-settings: "FILL" 1;'>verified</span>PRO MEMBER</p></div>
+    </div>
+  </div>
+
+<button data-auth-logout type="button" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60">
+  <span class="material-symbols-outlined text-[20px]">logout</span>
+  Logout
+</button>
+
+</aside>
+<main class="md:ml-[280px] min-h-screen">
+<header class="sticky top-0 z-40 bg-surface-container/95 backdrop-blur border-b border-outline-variant shadow-sm w-full">
+  <div class="flex justify-between items-center w-full px-gutter h-16 max-w-[1600px] mx-auto">
+    <div class="flex items-center gap-4 flex-1">
+      <a href="index.html" class="md:hidden font-display-lg text-title-md font-bold text-primary">ProTrade</a>
+      <div class="relative hidden sm:block">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+        <input id="journalSearch" class="bg-surface-container-low border border-outline-variant rounded-full py-1.5 pl-10 pr-4 w-64 focus:ring-1 focus:ring-primary focus:outline-none text-body-sm text-on-surface" placeholder="Search journal entries..." type="search"/>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="p-2 text-on-surface-variant hover:bg-surface-bright rounded-full transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+      <button id="newJournalBtn" class="bg-secondary-container text-on-secondary-container font-bold px-4 py-2 rounded-lg text-body-sm flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all"><span class="material-symbols-outlined text-[20px]">edit_note</span><span class="hidden sm:inline">New Entry</span></button>
+      <a href="trades.html" class="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-body-sm flex items-center gap-2 hover:opacity-80 active:scale-95 transition-all"><span class="material-symbols-outlined text-[20px]">add</span><span class="hidden lg:inline">Add Trade</span></a>
+    </div>
+  </div>
+</header>
+<div class="p-gutter lg:p-unit-xl max-w-[1600px] mx-auto">
+  <div id="pageAlert" class="hidden mb-6 rounded-xl border px-4 py-3 text-body-sm"></div>
+
+  <!-- Header Section: same visual language as the original AI Journal page -->
+  <div class="mb-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+    <div>
+      <div class="mb-2 flex items-center gap-2 text-tertiary">
+        <span class="material-symbols-outlined">database</span>
+        <span class="font-label-uppercase text-label-uppercase">Live MongoDB Journal</span>
+      </div>
+      <h2 class="font-headline-lg text-headline-lg text-on-surface mb-2 tracking-tight">AI Journal &amp; Psychology</h2>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">The original design, now powered by your real trades, psychology notes and journal entries.</p>
+    </div>
+    <div class="rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-body-sm text-on-surface-variant">
+      <span class="material-symbols-outlined mr-2 text-secondary">info</span>
+      Insights are data-driven rules for now; a real AI generation endpoint will be added later.
+    </div>
+  </div>
+
+  <div id="loadingPanel" class="mb-6 rounded-2xl border border-outline-variant bg-surface-container-low p-8 text-center">
+    <span class="material-symbols-outlined animate-spin text-[36px] text-secondary">progress_activity</span>
+    <p class="mt-3 text-on-surface-variant">Loading live journal and trade data...</p>
+  </div>
+
+  <!-- Bento Grid Layout -->
+  <div id="journalDashboard" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+    <!-- Psychology Module -->
+    <section class="lg:col-span-12 space-y-gutter">
+      <!-- Daily Mood Tracker -->
+      <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h3 class="font-title-md text-title-md text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary">psychology_alt</span>
+              Mood Check-in
+            </h3>
+            <p class="mt-1 text-body-sm text-on-surface-variant">Save a quick Daily Review entry without opening the full form.</p>
+          </div>
+          <span id="moodSaveState" class="text-body-sm text-on-surface-variant">Not saved</span>
+        </div>
+
+        <div id="moodButtons" class="grid grid-cols-5 gap-2 mb-8">
+          <button type="button" data-mood="Anxious" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-on-surface-variant border border-transparent hover:border-outline-variant">
+            <span class="material-symbols-outlined text-[28px]">sentiment_very_dissatisfied</span><span class="text-[10px] font-label-uppercase">Anxious</span>
+          </button>
+          <button type="button" data-mood="Tired" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-on-surface-variant border border-transparent hover:border-outline-variant">
+            <span class="material-symbols-outlined text-[28px]">sentiment_dissatisfied</span><span class="text-[10px] font-label-uppercase">Tired</span>
+          </button>
+          <button type="button" data-mood="Neutral" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl bg-secondary-container text-on-secondary-container border border-secondary shadow-lg">
+            <span class="material-symbols-outlined text-[28px]">sentiment_satisfied</span><span class="text-[10px] font-label-uppercase">Neutral</span>
+          </button>
+          <button type="button" data-mood="Confident" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-on-surface-variant border border-transparent hover:border-outline-variant">
+            <span class="material-symbols-outlined text-[28px]">sentiment_very_satisfied</span><span class="text-[10px] font-label-uppercase">Focused</span>
+          </button>
+          <button type="button" data-mood="Excited" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-surface-container-high transition-colors text-on-surface-variant border border-transparent hover:border-outline-variant">
+            <span class="material-symbols-outlined text-[28px]">rocket_launch</span><span class="text-[10px] font-label-uppercase">Peak</span>
+          </button>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-2">
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <label class="font-label-uppercase text-label-uppercase text-on-surface-variant">Confidence Level</label>
+              <span id="quickConfidenceValue" class="font-data-mono text-data-mono text-secondary">4/5</span>
+            </div>
+            <input id="quickConfidence" class="w-full h-1.5 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-secondary" max="5" min="1" type="range" value="4"/>
+          </div>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <label class="font-label-uppercase text-label-uppercase text-on-surface-variant">Discipline Rating</label>
+              <span id="quickDisciplineValue" class="font-data-mono text-data-mono text-secondary">3/5</span>
+            </div>
+            <input id="quickDiscipline" class="w-full h-1.5 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-secondary" max="5" min="1" type="range" value="3"/>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <label class="block font-label-uppercase text-label-uppercase text-on-surface-variant mb-3">Emotional Context</label>
+          <textarea id="quickContext" class="w-full bg-background border border-outline-variant rounded-xl p-4 text-on-surface font-body-sm focus:ring-1 focus:ring-secondary focus:border-secondary placeholder:opacity-40" placeholder="How was your headspace during the session?" rows="4"></textarea>
+        </div>
+        <button id="saveQuickLogBtn" class="w-full mt-6 py-3 bg-surface-variant hover:bg-surface-bright text-on-surface font-bold rounded-xl transition-all border border-outline-variant">Save Log</button>
+      </div>
+
+      <!-- Weekly AI Review -->
+      <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="font-title-md text-title-md text-on-surface">Weekly AI Review</h3>
+            <p class="text-body-sm text-on-surface-variant">Live summary of trading behavior and execution quality</p>
+          </div>
+          <div class="text-right">
+            <p class="text-label-uppercase text-on-surface-variant">Overall Grade</p>
+            <h3 id="overallGrade" class="text-headline-lg font-bold text-tertiary">--</h3>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Trades</p><p id="weeklyTrades" class="text-title-md font-bold">0</p></div>
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Win Rate</p><p id="weeklyWinRate" class="text-title-md font-bold text-tertiary">0%</p></div>
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Profit Factor</p><p id="weeklyProfitFactor" class="text-title-md font-bold text-secondary">0.00</p></div>
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Best Session</p><p id="bestSession" class="text-title-md font-bold">—</p></div>
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Best Setup</p><p id="bestSetup" class="text-title-md font-bold">—</p></div>
+        </div>
+      </div>
+
+      <!-- Risk Recommendations -->
+      <div class="bg-surface-container border border-outline-variant rounded-2xl p-6 shadow-sm overflow-hidden relative">
+        <div class="absolute -right-4 -top-4 opacity-10"><span class="material-symbols-outlined text-[120px] text-tertiary">verified_user</span></div>
+        <h3 class="font-title-md text-title-md text-on-surface mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-tertiary">security</span>Risk Guard AI</h3>
+        <div class="space-y-4">
+          <div class="bg-tertiary/10 border border-tertiary/30 rounded-xl p-4">
+            <div class="flex justify-between items-center mb-3"><span class="text-tertiary font-bold text-sm">DATA RECOMMENDATION</span><span id="riskConfidence" class="px-3 py-1 rounded-lg bg-tertiary/20 text-tertiary text-xs font-bold">Low data</span></div>
+            <p id="riskRecommendation" class="text-on-surface font-medium">Add more trades and journal entries to unlock a stronger recommendation.</p>
+            <p id="riskReason" class="text-on-surface-variant text-sm mt-2">The recommendation is generated from your live performance and psychology data.</p>
+          </div>
+          <div class="p-4 bg-surface-variant/50 rounded-xl border border-outline-variant"><p class="font-body-sm text-on-surface-variant leading-relaxed italic">“Discipline is the bridge between goals and accomplishment.”</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Journal Analysis -->
+    <section class="lg:col-span-12 space-y-gutter">
+      <!-- Pattern Detection Dashboard -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-gutter">
+        <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col items-center text-center">
+          <span class="material-symbols-outlined text-error mb-2">warning</span><p class="font-label-uppercase text-label-uppercase opacity-70 mb-1">Negative Pattern</p><p id="negativePattern" class="font-title-md text-title-md text-on-surface">No repeated mistakes</p><p id="negativePatternMeta" class="font-body-sm text-error mt-2">0 mentions</p>
+        </div>
+        <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col items-center text-center">
+          <span class="material-symbols-outlined text-tertiary mb-2">trending_up</span><p class="font-label-uppercase text-label-uppercase opacity-70 mb-1">Profit Edge</p><p id="profitEdge" class="font-title-md text-title-md text-on-surface">Add trade data</p><p id="profitEdgeMeta" class="font-body-sm text-tertiary mt-2">$0.00 P&amp;L</p>
+        </div>
+        <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-5 flex flex-col items-center text-center">
+          <span class="material-symbols-outlined text-secondary mb-2">timelapse</span><p class="font-label-uppercase text-label-uppercase opacity-70 mb-1">Time Bias</p><p id="timeBias" class="font-title-md text-title-md text-on-surface">No session edge</p><p id="timeBiasMeta" class="font-body-sm text-secondary mt-2">0 trades</p>
+        </div>
+      </div>
+
+      <!-- Mistake Breakdown -->
+      <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <h3 class="font-title-md text-title-md text-on-surface mb-2">Mistake Breakdown</h3>
+        <p class="text-body-sm text-on-surface-variant mb-6">Repeated mistakes extracted from saved journal entries</p>
+        <div id="mistakeBreakdown" class="space-y-5"></div>
+      </div>
+
+      <!-- Psychology Summary -->
+      <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <h3 class="font-title-md text-title-md text-on-surface mb-2">Psychology Summary</h3>
+        <p class="text-body-sm text-on-surface-variant mb-6">Mental-state patterns connected with trading performance</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Confidence</p><p id="avgConfidence" class="text-title-md font-bold text-secondary">0/10</p></div>
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Discipline</p><p id="avgDiscipline" class="text-title-md font-bold text-tertiary">0/10</p></div>
+          <div class="bg-surface-container-high rounded-xl p-4"><p class="text-label-uppercase text-on-surface-variant">Stress Risk</p><p id="stressRisk" class="text-title-md font-bold text-error">0/10</p></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-tertiary-container"><p class="text-label-uppercase text-on-surface-variant">Most Productive Mood</p><p id="productiveMood" class="text-title-md font-bold text-tertiary">No data</p></div>
+          <div class="p-4 rounded-xl bg-error-container"><p class="text-label-uppercase text-on-surface-variant">Most Dangerous Mood</p><p id="dangerousMood" class="text-title-md font-bold text-error">No data</p></div>
+        </div>
+      </div>
+
+      <!-- Trading Scorecard -->
+      <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <div class="flex justify-between items-center mb-6">
+          <div><h3 class="text-2xl font-bold text-on-surface">Trading Scorecard</h3><p class="text-on-surface-variant">Live performance and journaling evaluation</p></div>
+          <div class="text-right"><p class="text-sm text-on-surface-variant">Overall Grade</p><p id="scorecardGrade" class="text-4xl font-bold text-tertiary">--</p></div>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-surface-variant/50 rounded-xl p-4"><p class="text-sm text-on-surface-variant">Discipline</p><p id="scoreDiscipline" class="text-3xl font-bold text-tertiary">0/10</p></div>
+          <div class="bg-surface-variant/50 rounded-xl p-4"><p class="text-sm text-on-surface-variant">Risk Management</p><p id="scoreRisk" class="text-3xl font-bold text-secondary">0/10</p></div>
+          <div class="bg-surface-variant/50 rounded-xl p-4"><p class="text-sm text-on-surface-variant">Execution</p><p id="scoreExecution" class="text-3xl font-bold text-primary">0/10</p></div>
+          <div class="bg-surface-variant/50 rounded-xl p-4"><p class="text-sm text-on-surface-variant">Patience</p><p id="scorePatience" class="text-3xl font-bold text-error">0/10</p></div>
+        </div>
+      </div>
+
+      <!-- Day of Week Analysis -->
+      <div class="bg-surface-container-low border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-6"><div><h3 class="font-title-md text-title-md text-on-surface">Day of Week Analysis</h3><p class="text-body-sm text-on-surface-variant">Performance behavior across trading days</p></div><span id="weekdayAlert" class="px-3 py-1 rounded-lg bg-secondary/10 text-secondary text-xs font-bold">Waiting for data</span></div>
+        <div id="weekdayAnalysis" class="space-y-5"></div>
+      </div>
+
+      <!-- Action Plan -->
+      <div class="bg-primary-container border border-outline-variant rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary">task_alt</span><h3 class="font-title-md text-title-md text-on-secondary-container">Action Plan For Next Week</h3></div>
+          <button id="newActionEntryBtn" class="rounded-lg border border-outline-variant px-3 py-2 text-body-sm font-bold text-on-surface hover:bg-surface-container-high">Add Plan</button>
+        </div>
+        <div id="actionPlanList" class="space-y-4"></div>
+      </div>
+
+      <!-- Journal Entries: original horizontal card style -->
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div><h3 class="text-2xl font-bold text-on-surface">Saved Journal Entries</h3><p id="journalCount" class="text-on-surface-variant">0 entries stored in MongoDB</p></div>
+        <div class="flex gap-2">
+          <select id="journalStatusFilter" class="rounded-lg border-outline-variant bg-surface-container-low text-body-sm text-on-surface"><option value="">All statuses</option><option>Completed</option><option>Draft</option></select>
+          <button id="refreshJournalBtn" class="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2 text-body-sm font-bold hover:bg-surface-container-high">Refresh</button>
+        </div>
+      </div>
+      <div id="journalCards" class="space-y-gutter"></div>
+      <div id="journalEmpty" class="hidden rounded-2xl border border-dashed border-outline-variant bg-surface-container-low p-10 text-center">
+        <span class="material-symbols-outlined text-[52px] text-on-surface-variant">auto_stories</span>
+        <h3 class="mt-3 text-title-md font-bold">No matching journal entries</h3>
+        <p class="mt-2 text-on-surface-variant">Create a new reflection or clear the filters.</p>
+        <button onclick="openJournalModal()" class="mt-5 rounded-lg bg-secondary-container px-5 py-2.5 font-bold text-on-secondary-container">Create Entry</button>
+      </div>
+    </section>
+  </div>
+</div>
+</main>
+
+<div id="journalModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+  <div class="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-outline-variant bg-surface-container shadow-2xl">
+    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-outline-variant bg-surface-container/95 px-6 py-4 backdrop-blur">
+      <div><h2 id="journalModalTitle" class="text-title-md font-bold">New Journal Entry</h2><p class="text-body-sm text-on-surface-variant">Saved permanently in MongoDB.</p></div>
+      <button id="closeJournalModalBtn" class="rounded-full p-2 hover:bg-surface-container-high"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <form id="journalForm" class="space-y-6 p-6">
+      <input id="journalId" type="hidden"/>
+      <div class="grid gap-5 md:grid-cols-2">
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Title *</span><input id="journalTitle" required maxlength="150" class="w-full rounded-xl border-outline-variant bg-background text-on-surface focus:border-secondary focus:ring-secondary" placeholder="EURUSD Trade Review"/></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Journal Date</span><input id="journalDate" type="date" class="w-full rounded-xl border-outline-variant bg-background text-on-surface focus:border-secondary focus:ring-secondary"/></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Entry Type</span><select id="journalType" class="w-full rounded-xl border-outline-variant bg-background text-on-surface"><option>Trade Review</option><option>Daily Review</option><option>Weekly Review</option><option>Free Note</option></select></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Linked Trade</span><select id="linkedTrade" class="w-full rounded-xl border-outline-variant bg-background text-on-surface"><option value="">No linked trade</option></select></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Symbol</span><input id="journalSymbol" maxlength="30" class="w-full rounded-xl border-outline-variant bg-background uppercase text-on-surface" placeholder="EURUSD"/></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Mood</span><select id="journalMood" class="w-full rounded-xl border-outline-variant bg-background text-on-surface"><option>Calm</option><option>Confident</option><option selected>Neutral</option><option>Anxious</option><option>Frustrated</option><option>Excited</option><option>Tired</option></select></label>
+      </div>
+      <label class="block space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Summary</span><textarea id="journalSummary" rows="3" maxlength="3000" class="w-full rounded-xl border-outline-variant bg-background text-on-surface" placeholder="What happened?"></textarea></label>
+      <label class="block space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Reflection</span><textarea id="journalReflection" rows="4" maxlength="6000" class="w-full rounded-xl border-outline-variant bg-background text-on-surface" placeholder="What did you think, feel and do?"></textarea></label>
+      <div class="grid gap-5 md:grid-cols-2">
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Lessons</span><textarea id="journalLessons" rows="4" maxlength="4000" class="w-full rounded-xl border-outline-variant bg-background text-on-surface" placeholder="What did you learn?"></textarea></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Action Plan</span><textarea id="journalActionPlan" rows="4" maxlength="4000" class="w-full rounded-xl border-outline-variant bg-background text-on-surface" placeholder="What will you do next time?"></textarea></label>
+      </div>
+      <div class="grid gap-5 md:grid-cols-2">
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Mistakes</span><input id="journalMistakes" class="w-full rounded-xl border-outline-variant bg-background text-on-surface" placeholder="FOMO Entry, Early Exit"/><span class="text-xs text-on-surface-variant">Separate with commas.</span></label>
+        <label class="space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Tags</span><input id="journalTags" class="w-full rounded-xl border-outline-variant bg-background text-on-surface" placeholder="breakout, london, disciplined"/><span class="text-xs text-on-surface-variant">Separate with commas.</span></label>
+      </div>
+      <div class="grid gap-5 md:grid-cols-2">
+        <label class="rounded-xl border border-outline-variant bg-background p-4"><span class="mb-3 flex justify-between text-body-sm font-bold"><span>Confidence</span><span id="journalConfidenceValue" class="text-secondary">5/10</span></span><input id="journalConfidence" type="range" min="1" max="10" value="5" class="w-full accent-blue-400"/></label>
+        <label class="rounded-xl border border-outline-variant bg-background p-4"><span class="mb-3 flex justify-between text-body-sm font-bold"><span>Discipline</span><span id="journalDisciplineValue" class="text-tertiary">5/10</span></span><input id="journalDiscipline" type="range" min="1" max="10" value="5" class="w-full accent-emerald-400"/></label>
+      </div>
+      <label class="block space-y-2"><span class="font-label-uppercase text-label-uppercase text-on-surface-variant">Status</span><select id="journalStatus" class="w-full rounded-xl border-outline-variant bg-background text-on-surface"><option>Draft</option><option>Completed</option></select></label>
+      <div class="flex flex-col-reverse gap-3 border-t border-outline-variant pt-5 sm:flex-row sm:justify-between">
+        <button id="deleteJournalBtn" type="button" class="hidden rounded-lg border border-error/50 px-5 py-2.5 font-bold text-error hover:bg-error/10">Delete Entry</button>
+        <div class="ml-auto flex gap-3"><button id="cancelJournalBtn" type="button" class="rounded-lg border border-outline-variant px-5 py-2.5 font-bold hover:bg-surface-container-high">Cancel</button><button id="saveJournalBtn" type="submit" class="rounded-lg bg-primary px-6 py-2.5 font-bold text-on-primary hover:opacity-90">Save Entry</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<nav class="fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant h-16 md:hidden flex items-center justify-around px-4 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]"><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-label-uppercase mt-1">Dashboard</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span class="text-[10px] font-label-uppercase mt-1">Trades</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] font-label-uppercase mt-1">Calendar</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span class="text-[10px] font-label-uppercase mt-1">Analytics</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="settings.html"><span class="material-symbols-outlined">account_circle</span><span class="text-[10px] font-label-uppercase mt-1">Profile</span></a></nav>
+<script>
+const API_BASE = "https://protrader-backend-n8oj.onrender.com/api";
+const JOURNALS_API = `${API_BASE}/journals`;
+const TRADES_API = `${API_BASE}/trades`;
+
+let journals = [];
+let trades = [];
+let journalStats = {};
+let selectedMood = "Neutral";
+
+const $ = id => document.getElementById(id);
+const safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+
+function escapeHTML(value = "") {
+  return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+function splitList(value = "") { return value.split(",").map(v => v.trim()).filter(Boolean); }
+function formatDate(value) { return value ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value)) : "No date"; }
+function formatDateTime(value) { return value ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value)) : ""; }
+function formatMoney(value) { const n = safeNumber(value); return `${n >= 0 ? "+" : "-"}$${Math.abs(n).toFixed(2)}`; }
+function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+
+function showAlert(message, type = "success") {
+  const el = $("pageAlert");
+  el.textContent = message;
+  el.className = `mb-6 rounded-xl border px-4 py-3 text-body-sm ${type === "error" ? "border-error/40 bg-error/10 text-error" : "border-tertiary/40 bg-tertiary/10 text-tertiary"}`;
+  el.classList.remove("hidden");
+  window.clearTimeout(showAlert.timer);
+  showAlert.timer = window.setTimeout(() => el.classList.add("hidden"), 5000);
+}
+
+async function apiRequest(url, options = {}) {
+  const response = await fetch(url, options);
+  let body = {};
+  try { body = await response.json(); } catch (_) {}
+  if (!response.ok || body.success === false) throw new Error(body.message || `Request failed (${response.status})`);
+  return body;
+}
+
+function countBy(items, getter) {
+  return items.reduce((acc, item) => {
+    const key = getter(item);
+    if (key) acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+}
+function sumBy(items, getter) { return items.reduce((sum, item) => sum + safeNumber(getter(item)), 0); }
+function bestKeyByPnl(items, getter) {
+  const grouped = {};
+  items.forEach(item => { const key = getter(item) || "Unknown"; grouped[key] = (grouped[key] || 0) + safeNumber(item.profitLoss); });
+  const entries = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
+  return entries[0] || ["No data", 0];
+}
+function gradeFromScore(score) {
+  if (score >= 90) return "A+"; if (score >= 84) return "A"; if (score >= 78) return "A-";
+  if (score >= 72) return "B+"; if (score >= 66) return "B"; if (score >= 60) return "B-";
+  if (score >= 52) return "C"; if (score >= 42) return "D"; return "F";
+}
+function getTradeFromJournal(entry) {
+  if (entry?.trade && typeof entry.trade === "object") return entry.trade;
+  return trades.find(trade => trade._id === entry?.trade) || null;
+}
+
+async function loadAllData() {
+  $("loadingPanel").classList.remove("hidden");
+  $("journalDashboard").classList.add("hidden");
+  try {
+    const [journalResponse, statsResponse, tradeResponse] = await Promise.all([
+      apiRequest(JOURNALS_API), apiRequest(`${JOURNALS_API}/stats`), apiRequest(TRADES_API)
+    ]);
+    journals = journalResponse.data || [];
+    journalStats = statsResponse.data || {};
+    trades = tradeResponse.data || [];
+    populateTradeOptions();
+    renderAll();
+    $("loadingPanel").classList.add("hidden");
+    $("journalDashboard").classList.remove("hidden");
+  } catch (error) {
+    $("loadingPanel").innerHTML = `<span class="material-symbols-outlined text-[42px] text-error">cloud_off</span><h3 class="mt-3 text-title-md font-bold">Could not load journal data</h3><p class="mt-2 text-on-surface-variant">${escapeHTML(error.message)}</p><button onclick="loadAllData()" class="mt-5 rounded-lg bg-primary px-5 py-2.5 font-bold text-on-primary">Try Again</button>`;
+    showAlert(error.message, "error");
+  }
+}
+
+function renderAll() {
+  renderWeeklyReview();
+  renderPatterns();
+  renderMistakes();
+  renderPsychology();
+  renderScorecard();
+  renderWeekdays();
+  renderRiskGuard();
+  renderActionPlans();
+  renderJournalCards();
+}
+
+function renderWeeklyReview() {
+  const now = new Date();
+  const start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0,0,0,0);
+  const weekly = trades.filter(t => new Date(t.tradeDate || t.createdAt) >= start);
+  const wins = weekly.filter(t => safeNumber(t.profitLoss) > 0 || t.result === "Win");
+  const grossProfit = sumBy(weekly.filter(t => safeNumber(t.profitLoss) > 0), t => t.profitLoss);
+  const grossLoss = Math.abs(sumBy(weekly.filter(t => safeNumber(t.profitLoss) < 0), t => t.profitLoss));
+  const pf = grossLoss ? grossProfit / grossLoss : grossProfit;
+  const [session] = bestKeyByPnl(weekly, t => t.session);
+  const [setup] = bestKeyByPnl(weekly, t => t.model || t.protocol);
+  const winRate = weekly.length ? wins.length / weekly.length * 100 : 0;
+  const discipline = safeNumber(journalStats.averageDiscipline);
+  const score = clamp(winRate * 0.55 + discipline * 4.5, 0, 100);
+  $("overallGrade").textContent = gradeFromScore(score);
+  $("weeklyTrades").textContent = weekly.length;
+  $("weeklyWinRate").textContent = `${winRate.toFixed(1)}%`;
+  $("weeklyProfitFactor").textContent = pf.toFixed(2);
+  $("bestSession").textContent = session === "No data" ? "—" : session;
+  $("bestSetup").textContent = setup === "No data" ? "—" : setup;
+}
+
+function renderPatterns() {
+  const mistakes = journals.flatMap(j => j.mistakes || []);
+  const mistakeCounts = countBy(mistakes, value => value);
+  const topMistake = Object.entries(mistakeCounts).sort((a,b) => b[1] - a[1])[0];
+  $("negativePattern").textContent = topMistake?.[0] || "No repeated mistakes";
+  $("negativePatternMeta").textContent = `${topMistake?.[1] || 0} mentions`;
+
+  const [edge, edgePnl] = bestKeyByPnl(trades, t => t.model || t.protocol || t.symbol);
+  $("profitEdge").textContent = edge;
+  $("profitEdgeMeta").textContent = `${formatMoney(edgePnl)} P&L`;
+
+  const [session, sessionPnl] = bestKeyByPnl(trades, t => t.session);
+  const sessionTrades = trades.filter(t => (t.session || "Unknown") === session).length;
+  $("timeBias").textContent = session === "No data" ? "No session edge" : session;
+  $("timeBiasMeta").textContent = `${sessionTrades} trades · ${formatMoney(sessionPnl)}`;
+}
+
+function renderMistakes() {
+  const values = journals.flatMap(j => j.mistakes || []);
+  const counts = countBy(values, value => value);
+  const total = values.length || 1;
+  const colors = ["bg-error", "bg-secondary", "bg-primary", "bg-tertiary"];
+  const textColors = ["text-error", "text-secondary", "text-primary", "text-tertiary"];
+  const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 4);
+  $("mistakeBreakdown").innerHTML = entries.length ? entries.map(([name, count], index) => {
+    const pct = count / total * 100;
+    return `<div><div class="flex justify-between mb-2"><span>${escapeHTML(name)}</span><span class="font-bold ${textColors[index % textColors.length]}">${pct.toFixed(0)}%</span></div><div class="w-full bg-surface-container-high rounded-full h-3"><div class="${colors[index % colors.length]} h-3 rounded-full" style="width:${Math.max(5, pct)}%"></div></div></div>`;
+  }).join("") : `<div class="rounded-xl border border-dashed border-outline-variant p-6 text-center text-on-surface-variant">No mistake tags recorded yet.</div>`;
+}
+
+function renderPsychology() {
+  const avgConfidence = safeNumber(journalStats.averageConfidence);
+  const avgDiscipline = safeNumber(journalStats.averageDiscipline);
+  const riskyMoods = journals.filter(j => ["Anxious", "Frustrated", "Tired"].includes(j.mood)).length;
+  const stress = journals.length ? clamp((riskyMoods / journals.length) * 10 + (10 - avgDiscipline) * 0.25, 0, 10) : 0;
+  $("avgConfidence").textContent = `${avgConfidence.toFixed(1)}/10`;
+  $("avgDiscipline").textContent = `${avgDiscipline.toFixed(1)}/10`;
+  $("stressRisk").textContent = `${stress.toFixed(1)}/10`;
+
+  const moodPnl = {};
+  journals.forEach(j => {
+    const trade = getTradeFromJournal(j);
+    if (!j.mood || !trade) return;
+    if (!moodPnl[j.mood]) moodPnl[j.mood] = { pnl: 0, count: 0 };
+    moodPnl[j.mood].pnl += safeNumber(trade.profitLoss); moodPnl[j.mood].count++;
+  });
+  const moods = Object.entries(moodPnl).sort((a,b) => b[1].pnl - a[1].pnl);
+  $("productiveMood").textContent = moods[0]?.[0] || "No data";
+  $("dangerousMood").textContent = moods.length > 1 ? moods[moods.length - 1][0] : (moods[0]?.[1].pnl < 0 ? moods[0][0] : "No loss data");
+}
+
+function scoreComponents() {
+  const avgDiscipline = safeNumber(journalStats.averageDiscipline);
+  const avgConfidence = safeNumber(journalStats.averageConfidence);
+  const ratings = trades.map(t => safeNumber(t.rating)).filter(Boolean);
+  const avgRating10 = ratings.length ? (sumBy(ratings, r => r) / ratings.length) * 2 : 0;
+  const cleanPct = trades.length ? trades.filter(t => !(t.mistakeTags || []).length).length / trades.length * 10 : 0;
+  const patienceSignals = journals.map(j => `${j.lessons || ""} ${j.actionPlan || ""}`.toLowerCase()).filter(t => t.includes("patient") || t.includes("wait") || t.includes("confirmation")).length;
+  const patience = journals.length ? clamp(5 + patienceSignals / journals.length * 5 - journals.flatMap(j => j.mistakes || []).filter(m => /fomo|early/i.test(m)).length, 0, 10) : 0;
+  return { discipline: avgDiscipline, risk: cleanPct, execution: avgRating10 || avgConfidence, patience };
+}
+
+function renderScorecard() {
+  const s = scoreComponents();
+  const overall = (s.discipline + s.risk + s.execution + s.patience) / 4 * 10;
+  $("scorecardGrade").textContent = gradeFromScore(overall);
+  $("scoreDiscipline").textContent = `${s.discipline.toFixed(1)}/10`;
+  $("scoreRisk").textContent = `${s.risk.toFixed(1)}/10`;
+  $("scoreExecution").textContent = `${s.execution.toFixed(1)}/10`;
+  $("scorePatience").textContent = `${s.patience.toFixed(1)}/10`;
+}
+
+function renderWeekdays() {
+  const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const data = names.map((name, index) => ({ name, pnl: sumBy(trades.filter(t => new Date(t.tradeDate || t.createdAt).getDay() === index), t => t.profitLoss), count: trades.filter(t => new Date(t.tradeDate || t.createdAt).getDay() === index).length }));
+  const maxAbs = Math.max(1, ...data.map(d => Math.abs(d.pnl)));
+  $("weekdayAnalysis").innerHTML = data.slice(1, 6).map(day => {
+    const positive = day.pnl >= 0;
+    return `<div><div class="flex justify-between mb-2"><span class="font-bold">${day.name}</span><span class="font-bold ${positive ? "text-tertiary" : "text-error"}">${day.count ? formatMoney(day.pnl) : "No trades"}</span></div><div class="w-full bg-surface-container-high rounded-full h-3"><div class="${positive ? "bg-tertiary" : "bg-error"} h-3 rounded-full" style="width:${day.count ? Math.max(5, Math.abs(day.pnl) / maxAbs * 100) : 0}%"></div></div></div>`;
+  }).join("");
+  const worst = data.filter(d => d.count).sort((a,b) => a.pnl - b.pnl)[0];
+  $("weekdayAlert").textContent = worst ? `${worst.name} ${worst.pnl < 0 ? "Risk Detected" : "Lowest Performance"}` : "Waiting for data";
+  $("weekdayAlert").className = `px-3 py-1 rounded-lg text-xs font-bold ${worst?.pnl < 0 ? "bg-error/10 text-error" : "bg-secondary/10 text-secondary"}`;
+}
+
+function renderRiskGuard() {
+  const s = scoreComponents();
+  const mistakes = journals.flatMap(j => j.mistakes || []).map(v => v.toLowerCase());
+  let recommendation = "Continue logging trades and complete a reflection after each session.";
+  let reason = "More journal samples will make behavioral recommendations more reliable.";
+  if (mistakes.some(m => m.includes("fomo"))) { recommendation = "Use a mandatory confirmation checklist before every entry."; reason = "FOMO appears in your saved mistake tags."; }
+  else if (mistakes.some(m => m.includes("early"))) { recommendation = "Define exit rules before entry and avoid manually closing winners early."; reason = "Early exit appears in your saved mistake tags."; }
+  else if (s.discipline && s.discipline < 6) { recommendation = "Reduce position size and focus on rule-following until discipline improves."; reason = `Average journal discipline is ${s.discipline.toFixed(1)}/10.`; }
+  else if (trades.some(t => safeNumber(t.profitLoss) < 0)) { recommendation = "Stop trading after two consecutive losses and review the setup quality."; reason = "Your history contains losing trades; a hard loss limit protects execution quality."; }
+  else if (trades.length) { recommendation = "Keep risk consistent and repeat the setups already producing positive expectancy."; reason = "Current live trade history is profitable, but the sample size is still limited."; }
+  const confidence = clamp((trades.length + journals.length) * 10, 10, 95);
+  $("riskRecommendation").textContent = recommendation;
+  $("riskReason").textContent = reason;
+  $("riskConfidence").textContent = `${confidence}% Data confidence`;
+}
+
+function renderActionPlans() {
+  const plans = journals.filter(j => j.actionPlan?.trim()).sort((a,b) => new Date(b.journalDate || b.createdAt) - new Date(a.journalDate || a.createdAt)).slice(0, 4);
+  const defaults = ["Complete a journal entry after every trade.", "Review mistake tags before the next session.", "Use a fixed risk amount for every setup."];
+  const values = plans.length ? plans.map(j => j.actionPlan) : defaults;
+  $("actionPlanList").innerHTML = values.map((plan, index) => `<div class="flex gap-3"><span class="text-tertiary font-bold">${String(index + 1).padStart(2, "0")}</span><p class="text-body-sm text-on-surface">${escapeHTML(plan)}</p></div>`).join("");
+}
+
+function cardImage(entry, trade) {
+  if (trade?.screenshotUrl) return trade.screenshotUrl;
+  return safeNumber(trade?.profitLoss) < 0
+    ? "https://lh3.googleusercontent.com/aida-public/AB6AXuAZqUejcGwrsNiUd0qbHdW0Vu5FrZNWCLG4KxI9KJsSGlvPrJOEE5JQYEogCU3HD2Gd_uH05gNT5dzeCTgMSz-1j7TG7AnzVOJhrPhF_VbVIouwOdLR6Do_UPXNbVsq0nRI74OQ1kilf3Z5xLXlfpLIKdB-uQjFXnIcVvo2SzdHrrYKs2_sPPgzisCXkfJSj6VhPB--aPC3NtpJJmU0x7fDV4iWI1S6U28ESpRXlqcbl4nSvKnGc9_D3yPReWVe8hzigQRnKJTL71iA"
+    : "https://lh3.googleusercontent.com/aida-public/AB6AXuBpyrGY8RdMvfm6hX-XX9uP3K5ebuFXIb3u5VhhjGkxxo333XnT0Vao8lZx-SneS8AgCjPJpJQN2Rhdif9pNTXzs65J3-19_AxyD4lRgs0rOTel_Zv29BcdGLTPYWcJ2KE1zrwobqHUw9_G5VnCa9AldDlLuK--HXifJwa_sE5pDVFAQ5uAFTaQ-f5u7uQuY3V9lsb6w9RadfSr8VRUPE_wsKmiXD2RgtClDK6tZGvacWthI71Y_KJm2ZheZopNqFTQb7jZ6GA_F1hf";
+}
+
+function filteredJournals() {
+  const query = ($("journalSearch")?.value || "").trim().toLowerCase();
+  const status = $("journalStatusFilter")?.value || "";
+  return journals.filter(entry => {
+    const text = [entry.title, entry.symbol, entry.summary, entry.reflection, entry.lessons, entry.actionPlan, ...(entry.tags || []), ...(entry.mistakes || [])].join(" ").toLowerCase();
+    return (!query || text.includes(query)) && (!status || entry.status === status);
+  });
+}
+
+function renderJournalCards() {
+  const items = filteredJournals();
+  $("journalCount").textContent = `${items.length} ${items.length === 1 ? "entry" : "entries"} stored in MongoDB`;
+  $("journalEmpty").classList.toggle("hidden", items.length > 0);
+  $("journalCards").innerHTML = items.map(entry => {
+    const trade = getTradeFromJournal(entry);
+    const pnl = safeNumber(trade?.profitLoss);
+    const positive = pnl >= 0;
+    const accent = trade ? (positive ? "border-tertiary" : "border-error") : "border-secondary";
+    const badge = trade ? `${positive ? "Profit" : "Loss"} ${formatMoney(pnl)}` : entry.status;
+    const tags = [...(entry.mistakes || []), ...(entry.tags || [])].slice(0, 4);
+    return `<article class="bg-surface-container-low border border-outline-variant rounded-2xl overflow-hidden group hover:${accent}/50 transition-all">
+      <div class="flex flex-col md:flex-row">
+        <div class="md:w-1/3 h-48 md:h-auto min-h-[220px] bg-surface-variant relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent z-10"></div>
+          <img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="${escapeHTML(cardImage(entry, trade))}" alt="Trading journal visual"/>
+          <div class="absolute top-4 left-4 z-20"><span class="px-3 py-1 ${trade ? (positive ? "bg-tertiary text-on-tertiary" : "bg-error text-on-error") : "bg-secondary text-on-secondary"} font-bold text-[10px] rounded-full uppercase tracking-widest">${escapeHTML(badge)}</span></div>
+        </div>
+        <div class="flex-1 p-6">
+          <div class="flex justify-between items-start gap-4 mb-4"><div><h4 class="font-title-md text-title-md text-on-surface">${escapeHTML(entry.title)}</h4><p class="font-data-mono text-data-mono text-on-surface-variant">${formatDateTime(entry.journalDate || entry.createdAt)}${entry.symbol ? ` · ${escapeHTML(entry.symbol)}` : ""}</p></div><button onclick="openJournalModalById('${entry._id}')" class="rounded-lg border border-outline-variant p-2 hover:bg-surface-container-high" title="Edit entry"><span class="material-symbols-outlined text-secondary">edit</span></button></div>
+          <div class="bg-surface-container-high p-4 rounded-xl border-l-4 ${accent} mb-4"><p class="font-body-sm text-on-surface italic">“${escapeHTML(entry.summary || entry.reflection || "No journal summary has been written yet.")}”</p></div>
+          <div class="grid grid-cols-3 gap-4 border-t border-outline-variant pt-4">
+            <div><p class="font-label-uppercase text-label-uppercase opacity-50 text-[10px] mb-1">Emotion</p><p class="text-sm font-bold">${escapeHTML(entry.mood || "Neutral")}</p></div>
+            <div><p class="font-label-uppercase text-label-uppercase opacity-50 text-[10px] mb-1">Confidence</p><p class="text-sm font-bold text-secondary">${safeNumber(entry.confidence)}/10</p></div>
+            <div><p class="font-label-uppercase text-label-uppercase opacity-50 text-[10px] mb-1">Discipline</p><p class="text-sm font-bold text-tertiary">${safeNumber(entry.discipline)}/10</p></div>
+          </div>
+          ${tags.length ? `<div class="mt-4 flex flex-wrap gap-2">${tags.map(tag => `<span class="rounded-full border border-outline-variant bg-surface-container-high px-2.5 py-1 text-[11px] text-on-surface-variant">${escapeHTML(tag)}</span>`).join("")}</div>` : ""}
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function selectMood(mood) {
+  selectedMood = mood;
+  document.querySelectorAll(".mood-btn").forEach(btn => {
+    const active = btn.dataset.mood === mood;
+    btn.className = `mood-btn flex flex-col items-center gap-2 p-3 rounded-xl transition-colors border ${active ? "bg-secondary-container text-on-secondary-container border-secondary shadow-lg" : "hover:bg-surface-container-high text-on-surface-variant border-transparent hover:border-outline-variant"}`;
+  });
+}
+
+async function saveQuickMoodLog() {
+  const context = $("quickContext").value.trim();
+  const today = new Date();
+  const payload = {
+    title: `Mood Check-in — ${formatDate(today)}`,
+    journalDate: today.toISOString(),
+    entryType: "Daily Review",
+    summary: context || `Daily mood check-in recorded as ${selectedMood}.`,
+    reflection: context,
+    mood: selectedMood,
+    confidence: safeNumber($("quickConfidence").value) * 2,
+    discipline: safeNumber($("quickDiscipline").value) * 2,
+    tags: ["mood-checkin"],
+    status: "Completed"
+  };
+  const button = $("saveQuickLogBtn"); button.disabled = true; button.textContent = "Saving...";
+  try {
+    await apiRequest(JOURNALS_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    $("quickContext").value = ""; $("moodSaveState").textContent = "Saved to MongoDB"; showAlert("Mood check-in saved successfully."); await loadAllData();
+  } catch (error) { showAlert(error.message, "error"); }
+  finally { button.disabled = false; button.textContent = "Save Log"; }
+}
+
+function populateTradeOptions() {
+  $("linkedTrade").innerHTML = `<option value="">No linked trade</option>` + trades.map(t => `<option value="${t._id}">${escapeHTML(t.symbol || "Trade")} · ${formatDate(t.tradeDate)} · ${formatMoney(t.profitLoss)}</option>`).join("");
+}
+function resetJournalForm() {
+  $("journalForm").reset(); $("journalId").value = ""; $("journalDate").value = new Date().toISOString().slice(0,10); $("journalMood").value = "Neutral"; $("journalConfidence").value = 5; $("journalDiscipline").value = 5; $("journalConfidenceValue").textContent = "5/10"; $("journalDisciplineValue").textContent = "5/10"; $("journalStatus").value = "Draft"; $("deleteJournalBtn").classList.add("hidden");
+}
+function openJournalModal(entry = null) {
+  resetJournalForm(); $("journalModalTitle").textContent = entry ? "Edit Journal Entry" : "New Journal Entry";
+  if (entry) {
+    $("journalId").value = entry._id; $("journalTitle").value = entry.title || ""; $("journalDate").value = entry.journalDate ? new Date(entry.journalDate).toISOString().slice(0,10) : ""; $("journalType").value = entry.entryType || "Trade Review"; $("linkedTrade").value = entry.trade?._id || entry.trade || ""; $("journalSymbol").value = entry.symbol || ""; $("journalMood").value = entry.mood || "Neutral"; $("journalSummary").value = entry.summary || ""; $("journalReflection").value = entry.reflection || ""; $("journalLessons").value = entry.lessons || ""; $("journalActionPlan").value = entry.actionPlan || ""; $("journalMistakes").value = (entry.mistakes || []).join(", "); $("journalTags").value = (entry.tags || []).join(", "); $("journalConfidence").value = entry.confidence || 5; $("journalDiscipline").value = entry.discipline || 5; $("journalConfidenceValue").textContent = `${entry.confidence || 5}/10`; $("journalDisciplineValue").textContent = `${entry.discipline || 5}/10`; $("journalStatus").value = entry.status || "Draft"; $("deleteJournalBtn").classList.remove("hidden");
+  }
+  $("journalModal").classList.remove("hidden"); $("journalModal").classList.add("flex");
+}
+function openJournalModalById(id) { const entry = journals.find(j => j._id === id); if (entry) openJournalModal(entry); }
+function closeJournalModal() { $("journalModal").classList.add("hidden"); $("journalModal").classList.remove("flex"); }
+
+async function submitJournal(event) {
+  event.preventDefault(); const id = $("journalId").value;
+  const payload = { title: $("journalTitle").value.trim(), journalDate: $("journalDate").value || new Date().toISOString(), entryType: $("journalType").value, trade: $("linkedTrade").value || null, symbol: $("journalSymbol").value.trim().toUpperCase(), mood: $("journalMood").value, summary: $("journalSummary").value.trim(), reflection: $("journalReflection").value.trim(), lessons: $("journalLessons").value.trim(), actionPlan: $("journalActionPlan").value.trim(), mistakes: splitList($("journalMistakes").value), tags: splitList($("journalTags").value), confidence: safeNumber($("journalConfidence").value), discipline: safeNumber($("journalDiscipline").value), status: $("journalStatus").value };
+  const button = $("saveJournalBtn"); button.disabled = true; button.textContent = id ? "Updating..." : "Saving...";
+  try { await apiRequest(id ? `${JOURNALS_API}/${id}` : JOURNALS_API, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); closeJournalModal(); showAlert(id ? "Journal entry updated." : "Journal entry created."); await loadAllData(); }
+  catch (error) { showAlert(error.message, "error"); }
+  finally { button.disabled = false; button.textContent = "Save Entry"; }
+}
+async function deleteJournal() {
+  const id = $("journalId").value; if (!id || !confirm("Delete this journal entry permanently?")) return;
+  const button = $("deleteJournalBtn"); button.disabled = true; button.textContent = "Deleting...";
+  try { await apiRequest(`${JOURNALS_API}/${id}`, { method: "DELETE" }); closeJournalModal(); showAlert("Journal entry deleted."); await loadAllData(); }
+  catch (error) { showAlert(error.message, "error"); }
+  finally { button.disabled = false; button.textContent = "Delete Entry"; }
+}
+
+// Events
+document.querySelectorAll(".mood-btn").forEach(btn => btn.addEventListener("click", () => selectMood(btn.dataset.mood)));
+$("quickConfidence").addEventListener("input", e => $("quickConfidenceValue").textContent = `${e.target.value}/5`);
+$("quickDiscipline").addEventListener("input", e => $("quickDisciplineValue").textContent = `${e.target.value}/5`);
+$("saveQuickLogBtn").addEventListener("click", saveQuickMoodLog);
+$("newJournalBtn").addEventListener("click", () => openJournalModal());
+$("newActionEntryBtn").addEventListener("click", () => { openJournalModal(); $("journalType").value = "Weekly Review"; $("journalTitle").value = "Action Plan For Next Week"; $("journalStatus").value = "Draft"; });
+$("refreshJournalBtn").addEventListener("click", loadAllData);
+$("journalStatusFilter").addEventListener("change", renderJournalCards);
+$("journalSearch").addEventListener("input", renderJournalCards);
+$("closeJournalModalBtn").addEventListener("click", closeJournalModal);
+$("cancelJournalBtn").addEventListener("click", closeJournalModal);
+$("journalForm").addEventListener("submit", submitJournal);
+$("deleteJournalBtn").addEventListener("click", deleteJournal);
+$("journalConfidence").addEventListener("input", e => $("journalConfidenceValue").textContent = `${e.target.value}/10`);
+$("journalDiscipline").addEventListener("input", e => $("journalDisciplineValue").textContent = `${e.target.value}/10`);
+$("linkedTrade").addEventListener("change", e => { const trade = trades.find(t => t._id === e.target.value); if (trade && !$("journalSymbol").value.trim()) $("journalSymbol").value = trade.symbol || ""; });
+$("journalModal").addEventListener("click", e => { if (e.target === $("journalModal")) closeJournalModal(); });
+
+document.querySelectorAll("button").forEach(btn => { btn.addEventListener("mousedown", () => btn.classList.add("scale-95")); btn.addEventListener("mouseup", () => btn.classList.remove("scale-95")); btn.addEventListener("mouseleave", () => btn.classList.remove("scale-95")); });
+
+loadAllData();
+</script>
+</body>
+</html>

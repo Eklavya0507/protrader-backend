@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <script src="auth.js"></script>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Analytics | ProTrade Analytics</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #101415; }
+    ::-webkit-scrollbar-thumb { background: #323537; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #45464d; }
+    .metric-card { min-width: 0; }
+    .chart-panel { position: relative; width: 100%; min-height: 300px; }
+    .range-btn.active { background: #bec6e0; color: #283044; }
+    .range-btn:not(.active) { background: #323537; color: #e0e3e5; }
+  </style>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: { extend: {
+        colors: {
+          background: "#101415", surface: "#101415", "surface-container-lowest": "#0b0f10",
+          "surface-container-low": "#191c1e", "surface-container": "#1d2022",
+          "surface-container-high": "#272a2c", "surface-container-highest": "#323537",
+          "surface-bright": "#363a3b", "on-surface": "#e0e3e5", "on-surface-variant": "#c6c6cd",
+          primary: "#bec6e0", "on-primary": "#283044", "primary-container": "#0f172a",
+          "on-primary-container": "#798098", secondary: "#adc6ff", "secondary-container": "#0566d9",
+          "on-secondary-container": "#e6ecff", tertiary: "#4edea3", "tertiary-container": "#001c10",
+          "on-tertiary": "#003824", error: "#ffb4ab", "error-container": "#93000a",
+          outline: "#909097", "outline-variant": "#45464d"
+        },
+        borderRadius: { lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px" },
+        spacing: { gutter: "1.5rem", "unit-xs": "0.25rem", "unit-sm": "0.5rem", "unit-md": "1rem", "unit-lg": "1.5rem", "unit-xl": "2.5rem" }
+      }}
+    };
+  </script>
+</head>
+<body class="bg-background text-on-surface min-h-screen pb-16 md:pb-0">
+  <aside class="fixed left-0 top-0 h-full w-[280px] z-50 bg-surface-container-low border-r border-outline-variant flex-col py-6 px-4 hidden md:flex">
+    <div class="mb-10 px-2">
+      <a href="index.html" class="block"><h1 class="text-3xl font-black text-primary tracking-tight">ProTrade</h1><p class="text-xs uppercase tracking-wider font-bold text-on-surface-variant opacity-70">Institutional Grade</p></a>
+    </div>
+    <nav class="flex-1 space-y-1">
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span>Trades</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span>Calendar</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg font-semibold shadow-sm" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span>Analytics</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition" href="psychology.html"><span class="material-symbols-outlined">psychology</span><span>Psychology</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition" href="ai-journal.html"><span class="material-symbols-outlined">smart_toy</span><span>AI Journal</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition" href="settings.html"><span class="material-symbols-outlined">settings</span><span>Settings</span></a>
+    </nav>
+    <div class="mt-auto space-y-6">
+      <a href="dashboard.html" class="w-full py-4 px-6 bg-tertiary text-on-tertiary rounded-xl font-bold hover:opacity-90 flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[20px]">workspace_premium</span>Upgrade to Pro</a>
+      <div class="flex items-center gap-4 p-2 border-t border-outline-variant pt-6">
+        <div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center"><span class="material-symbols-outlined text-primary">account_circle</span></div>
+        <div class="flex-1 min-w-0"><p class="text-sm font-bold truncate"><span class="auth-user-name">Alex Rivera</span></p><p class="text-[10px] text-tertiary flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" style="font-variation-settings:'FILL' 1">verified</span>PRO MEMBER</p></div>
+      </div>
+    </div>
+  
+<button data-auth-logout type="button" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60">
+  <span class="material-symbols-outlined text-[20px]">logout</span>
+  Logout
+</button>
+
+</aside>
+
+  <main class="md:ml-[280px] min-h-screen">
+    <header class="sticky top-0 z-40 bg-surface-container/95 backdrop-blur border-b border-outline-variant shadow-sm">
+      <div class="flex justify-between items-center px-6 h-16 max-w-[1600px] mx-auto">
+        <div class="flex items-center gap-4 flex-1">
+          <a href="index.html" class="md:hidden text-xl font-bold text-primary">ProTrade</a>
+          <div class="relative hidden sm:block">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+            <input id="analyticsSearch" class="bg-surface-container-low border border-outline-variant rounded-full py-1.5 pl-10 pr-4 w-64 focus:ring-1 focus:ring-primary focus:outline-none text-sm" placeholder="Search symbol or setup..." type="search"/>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="refreshBtn" class="p-2 text-on-surface-variant hover:bg-surface-bright rounded-full" title="Refresh live data"><span class="material-symbols-outlined">refresh</span></button>
+          <a href="trades.html" class="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:opacity-80"><span class="material-symbols-outlined text-[20px]">add</span><span class="hidden sm:inline">Add Trade</span></a>
+        </div>
+      </div>
+    </header>
+
+    <div class="p-6 lg:p-10 max-w-[1600px] mx-auto">
+      <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-5 mb-8">
+        <div>
+          <p class="text-tertiary text-xs uppercase tracking-widest font-bold mb-2">Live MongoDB Analytics</p>
+          <h2 class="text-3xl lg:text-4xl font-bold">Performance Analytics</h2>
+          <p class="text-on-surface-variant mt-2">Every metric is calculated from your verified trade history.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button class="range-btn px-4 py-2 rounded-lg text-xs font-bold active" data-range="ALL">ALL</button>
+          <button class="range-btn px-4 py-2 rounded-lg text-xs font-bold" data-range="30D">30D</button>
+          <button class="range-btn px-4 py-2 rounded-lg text-xs font-bold" data-range="90D">90D</button>
+          <button class="range-btn px-4 py-2 rounded-lg text-xs font-bold" data-range="YTD">YTD</button>
+          <button id="exportAnalyticsBtn" class="px-4 py-2 rounded-lg bg-surface-container-high border border-outline-variant text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">download</span>Export</button>
+        </div>
+      </div>
+
+      <div id="analyticsStatus" class="rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-sm flex items-center gap-3 mb-6">
+        <span class="material-symbols-outlined text-[20px] animate-spin">progress_activity</span><span>Loading live analytics...</span>
+      </div>
+
+      <section class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+        <article class="metric-card bg-surface-container-low border border-outline-variant rounded-2xl p-5"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Net P&amp;L</p><p id="netPnlValue" class="text-3xl font-black mt-3">$0.00</p><p id="netPnlMeta" class="text-xs text-on-surface-variant mt-2">0 wins, 0 losses</p></article>
+        <article class="metric-card bg-surface-container-low border border-outline-variant rounded-2xl p-5"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Win Rate</p><p id="winRateValue" class="text-3xl font-black text-tertiary mt-3">0.0%</p><p id="winRateMeta" class="text-xs text-on-surface-variant mt-2">0 profitable trades</p></article>
+        <article class="metric-card bg-surface-container-low border border-outline-variant rounded-2xl p-5"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Profit Factor</p><p id="profitFactorValue" class="text-3xl font-black text-secondary mt-3">0.00</p><p id="profitFactorMeta" class="text-xs text-on-surface-variant mt-2">Gross profit ÷ gross loss</p></article>
+        <article class="metric-card bg-surface-container-low border border-outline-variant rounded-2xl p-5"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Average RR</p><p id="avgRRValue" class="text-3xl font-black mt-3">0.00R</p><p id="expectancyValue" class="text-xs text-on-surface-variant mt-2">Expectancy $0.00</p></article>
+        <article class="metric-card col-span-2 xl:col-span-1 bg-primary-container border border-outline-variant rounded-2xl p-5"><p class="text-xs uppercase tracking-wider text-on-primary-container font-bold">Trades Analyzed</p><p id="totalTradesValue" class="text-3xl font-black text-primary mt-3">0</p><p id="activePeriodValue" class="text-xs text-on-surface-variant mt-2">All-time history</p></article>
+      </section>
+
+      <section class="grid grid-cols-12 gap-6">
+        <article class="col-span-12 xl:col-span-8 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div><h3 class="text-xl font-bold">Equity Curve</h3><p class="text-sm text-on-surface-variant">Cumulative account performance from a $100,000 baseline</p></div>
+            <div class="flex gap-5 text-sm"><div><span class="text-on-surface-variant">Current</span><p id="currentEquityValue" class="font-bold">$100,000.00</p></div><div><span class="text-on-surface-variant">Peak</span><p id="peakEquityValue" class="font-bold">$100,000.00</p></div></div>
+          </div>
+          <div class="chart-panel h-[340px]"><canvas id="analyticsEquityChart"></canvas></div>
+        </article>
+
+        <div class="col-span-12 xl:col-span-4 grid sm:grid-cols-3 xl:grid-cols-1 gap-4">
+          <article class="bg-surface-container-low border border-outline-variant rounded-2xl p-5"><div class="flex justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Best Trade</p><p id="bestTradePnl" class="text-2xl font-black text-tertiary mt-2">$0.00</p></div><span class="material-symbols-outlined text-tertiary">trending_up</span></div><p id="bestTradeSymbol" class="font-bold mt-3">No trade</p><p id="bestTradeMeta" class="text-xs text-on-surface-variant mt-1">Add trades to begin analysis</p></article>
+          <article class="bg-surface-container-low border border-outline-variant rounded-2xl p-5"><div class="flex justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Worst Trade</p><p id="worstTradePnl" class="text-2xl font-black text-error mt-2">$0.00</p></div><span class="material-symbols-outlined text-error">trending_down</span></div><p id="worstTradeSymbol" class="font-bold mt-3">No trade</p><p id="worstTradeMeta" class="text-xs text-on-surface-variant mt-1">No losing trades in range</p></article>
+          <article class="bg-primary-container border border-outline-variant rounded-2xl p-5"><div class="flex justify-between gap-3"><div><p class="text-xs uppercase tracking-wider text-on-primary-container font-bold">Max Drawdown</p><p id="maxDrawdownValue" class="text-2xl font-black text-primary mt-2">0.00%</p></div><span class="material-symbols-outlined text-primary">monitoring</span></div><p id="drawdownMeta" class="font-bold mt-3">Controlled risk</p><p class="text-xs text-on-surface-variant mt-1">Peak-to-trough equity decline</p></article>
+        </div>
+
+        <article class="col-span-12 xl:col-span-7 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="mb-5"><h3 class="text-xl font-bold">P&amp;L by Instrument</h3><p class="text-sm text-on-surface-variant">Realized performance grouped by symbol</p></div>
+          <div class="chart-panel h-[310px]"><canvas id="instrumentChart"></canvas></div>
+        </article>
+
+        <article class="col-span-12 xl:col-span-5 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="mb-5"><h3 class="text-xl font-bold">Session Performance</h3><p class="text-sm text-on-surface-variant">Net P&amp;L across trading sessions</p></div>
+          <div class="chart-panel h-[310px]"><canvas id="sessionChart"></canvas></div>
+        </article>
+
+        <article class="col-span-12 lg:col-span-5 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="mb-5"><h3 class="text-xl font-bold">Direction Breakdown</h3><p class="text-sm text-on-surface-variant">Long versus short execution quality</p></div>
+          <div id="directionCards" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+          <div class="mt-5 grid grid-cols-2 gap-4 border-t border-outline-variant pt-5"><div><p class="text-xs text-on-surface-variant uppercase font-bold">Best Symbol</p><p id="bestSymbolValue" class="font-bold text-tertiary mt-2">—</p></div><div><p class="text-xs text-on-surface-variant uppercase font-bold">Best Session</p><p id="bestSessionValue" class="font-bold text-secondary mt-2">—</p></div></div>
+        </article>
+
+        <article class="col-span-12 lg:col-span-7 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="mb-5"><h3 class="text-xl font-bold">RR Distribution</h3><p id="rrSubtitle" class="text-sm text-on-surface-variant">Distribution by planned risk-to-reward ratio</p></div>
+          <div id="rrDistribution" class="space-y-5"></div>
+        </article>
+
+        <article class="col-span-12 lg:col-span-6 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="mb-5"><h3 class="text-xl font-bold">P&amp;L Distribution</h3><p class="text-sm text-on-surface-variant">Frequency of winning and losing outcomes</p></div>
+          <div class="chart-panel h-[290px]"><canvas id="pnlDistributionChart"></canvas></div>
+        </article>
+
+        <article class="col-span-12 lg:col-span-6 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="mb-5"><h3 class="text-xl font-bold">Duration vs Performance</h3><p class="text-sm text-on-surface-variant">Relationship between hold time and P&amp;L</p></div>
+          <div class="chart-panel h-[290px]"><canvas id="durationChart"></canvas></div>
+          <p id="durationMessage" class="text-xs text-on-surface-variant mt-3"></p>
+        </article>
+
+        <article class="col-span-12 bg-surface-container-low border border-outline-variant rounded-2xl p-6">
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div>
+              <div class="mb-5"><h3 class="text-xl font-bold">Mistake Analytics</h3><p class="text-sm text-on-surface-variant">Tags most frequently associated with execution errors</p></div>
+              <div id="mistakeAnalytics" class="space-y-4"></div>
+            </div>
+            <div class="bg-primary-container rounded-xl p-6">
+              <div class="flex items-center gap-2 text-secondary mb-4"><span class="material-symbols-outlined">auto_awesome</span><h4 class="font-bold">Analytics Insight</h4></div>
+              <p id="aiObservation" class="text-sm leading-relaxed">Add more trades to unlock a pattern-based observation.</p>
+              <div class="mt-5 p-4 rounded-lg bg-surface-container-high"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Focus Area</p><p id="focusArea" class="text-sm font-bold mt-2">Follow the trade plan consistently.</p></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="col-span-12 bg-surface-container-low border border-outline-variant rounded-2xl overflow-hidden">
+          <div class="p-6 border-b border-outline-variant"><h3 class="text-xl font-bold">Monthly Breakdown</h3><p class="text-sm text-on-surface-variant">Performance grouped by calendar month</p></div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[850px] text-sm">
+              <thead class="bg-surface-container-high text-on-surface-variant uppercase text-xs tracking-wider"><tr><th class="text-left px-6 py-4">Month</th><th class="text-right px-6 py-4">Trades</th><th class="text-right px-6 py-4">Wins</th><th class="text-right px-6 py-4">Win Rate</th><th class="text-right px-6 py-4">Avg RR</th><th class="text-right px-6 py-4">Net P&amp;L</th></tr></thead>
+              <tbody id="monthlyTableBody" class="divide-y divide-outline-variant"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant h-16 md:hidden flex items-center justify-around px-4 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]">
+    <a class="flex flex-col items-center text-on-surface-variant" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] mt-1">Dashboard</span></a>
+    <a class="flex flex-col items-center text-on-surface-variant" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span class="text-[10px] mt-1">Trades</span></a>
+    <a class="flex flex-col items-center text-on-surface-variant" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] mt-1">Calendar</span></a>
+    <a class="flex flex-col items-center text-primary font-bold" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span class="text-[10px] mt-1">Analytics</span></a>
+    <a class="flex flex-col items-center text-on-surface-variant" href="settings.html"><span class="material-symbols-outlined">account_circle</span><span class="text-[10px] mt-1">Profile</span></a>
+  </nav>
+
+  <script>
+    const API_URL = "https://protrader-backend-n8oj.onrender.com/api/trades";
+    const STARTING_BALANCE = 100000;
+    const $ = id => document.getElementById(id);
+    let allTrades = [];
+    let activeRange = "ALL";
+    let searchTerm = "";
+    let equityChart, instrumentChart, sessionChart, pnlDistributionChart, durationChart;
+
+    const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+    const escapeHtml = value => String(value ?? "").replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
+    const formatMoney = (value, showPlus = false) => {
+      const amount = number(value);
+      const sign = showPlus && amount > 0 ? "+" : "";
+      return `${sign}${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+    };
+    const formatDate = date => date ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+
+    function parseTradeDate(trade) {
+      const raw = trade?.tradeDate || trade?.createdAt;
+      if (!raw) return null;
+      const dateOnly = String(raw).slice(0, 10);
+      const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateOnly) ? new Date(`${dateOnly}T12:00:00`) : new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function setStatus(message, type = "loading") {
+      const status = $("analyticsStatus");
+      const styles = {
+        loading: "border-outline-variant bg-surface-container-low text-on-surface-variant",
+        error: "border-error/50 bg-error-container/30 text-error",
+        success: "border-tertiary/40 bg-tertiary-container/30 text-tertiary"
+      };
+      const icons = { loading: "progress_activity", error: "error", success: "check_circle" };
+      status.className = `rounded-xl border px-4 py-3 text-sm flex items-center gap-3 mb-6 ${styles[type]}`;
+      status.innerHTML = `<span class="material-symbols-outlined text-[20px] ${type === "loading" ? "animate-spin" : ""}">${icons[type]}</span><span>${escapeHtml(message)}</span>`;
+      status.classList.remove("hidden");
+      if (type === "success") setTimeout(() => status.classList.add("hidden"), 1600);
+    }
+
+    function filterTrades() {
+      const now = new Date();
+      let cutoff = null;
+      if (activeRange === "30D") cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      if (activeRange === "90D") cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89);
+      if (activeRange === "YTD") cutoff = new Date(now.getFullYear(), 0, 1);
+      return allTrades.filter(trade => {
+        const date = parseTradeDate(trade);
+        if (cutoff && (!date || date < cutoff)) return false;
+        if (searchTerm) {
+          const haystack = [trade.symbol, trade.model, trade.protocol, trade.session, trade.direction, trade.result].join(" ").toLowerCase();
+          if (!haystack.includes(searchTerm)) return false;
+        }
+        return true;
+      });
+    }
+
+    function calculateStats(trades) {
+      const wins = trades.filter(t => number(t.profitLoss) > 0 || t.result === "Win");
+      const losses = trades.filter(t => number(t.profitLoss) < 0 || t.result === "Loss");
+      const grossProfit = trades.reduce((sum, t) => sum + Math.max(number(t.profitLoss), 0), 0);
+      const grossLoss = Math.abs(trades.reduce((sum, t) => sum + Math.min(number(t.profitLoss), 0), 0));
+      const netPnl = grossProfit - grossLoss;
+      const rrValues = trades.map(t => number(t.rr)).filter(v => v > 0);
+      const avgRR = rrValues.length ? rrValues.reduce((a, b) => a + b, 0) / rrValues.length : 0;
+      const winRate = trades.length ? wins.length / trades.length * 100 : 0;
+      const profitFactor = grossProfit / Math.max(grossLoss, 1);
+      const avgWin = wins.length ? wins.reduce((sum, t) => sum + Math.max(number(t.profitLoss), 0), 0) / wins.length : 0;
+      const avgLoss = losses.length ? Math.abs(losses.reduce((sum, t) => sum + Math.min(number(t.profitLoss), 0), 0) / losses.length) : 0;
+      const expectancy = trades.length ? netPnl / trades.length : 0;
+      return { total: trades.length, wins: wins.length, losses: losses.length, grossProfit, grossLoss, netPnl, avgRR, winRate, profitFactor, avgWin, avgLoss, expectancy };
+    }
+
+    function buildEquitySeries(trades) {
+      const sorted = [...trades].sort((a, b) => {
+        const dateDiff = (parseTradeDate(a)?.getTime() || 0) - (parseTradeDate(b)?.getTime() || 0);
+        return dateDiff || String(a.entryTime || "").localeCompare(String(b.entryTime || ""));
+      });
+      let equity = STARTING_BALANCE;
+      const labels = ["Start"];
+      const values = [equity];
+      sorted.forEach(trade => {
+        equity += number(trade.profitLoss);
+        labels.push(`${trade.symbol || "Trade"} · ${formatDate(parseTradeDate(trade)).replace(/, \d{4}/, "")}`);
+        values.push(Number(equity.toFixed(2)));
+      });
+      return { labels, values };
+    }
+
+    function calculateDrawdown(values) {
+      let peak = values[0] || STARTING_BALANCE;
+      let maxDrawdown = 0;
+      values.forEach(value => {
+        peak = Math.max(peak, value);
+        if (peak > 0) maxDrawdown = Math.min(maxDrawdown, (value - peak) / peak * 100);
+      });
+      return maxDrawdown;
+    }
+
+    function groupTrades(trades, keyFn) {
+      const map = new Map();
+      trades.forEach(trade => {
+        const key = keyFn(trade) || "Unknown";
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(trade);
+      });
+      return map;
+    }
+
+    function renderKpis(trades) {
+      const stats = calculateStats(trades);
+      const pnl = $("netPnlValue");
+      pnl.textContent = formatMoney(stats.netPnl, true);
+      pnl.className = `text-3xl font-black mt-3 ${stats.netPnl > 0 ? "text-tertiary" : stats.netPnl < 0 ? "text-error" : "text-on-surface"}`;
+      $("netPnlMeta").textContent = `${stats.wins} wins, ${stats.losses} losses`;
+      $("winRateValue").textContent = `${stats.winRate.toFixed(1)}%`;
+      $("winRateMeta").textContent = `${stats.wins} profitable ${stats.wins === 1 ? "trade" : "trades"}`;
+      $("profitFactorValue").textContent = stats.profitFactor.toFixed(2);
+      $("profitFactorMeta").textContent = `${formatMoney(stats.grossProfit)} gross profit · ${formatMoney(stats.grossLoss)} loss`;
+      $("avgRRValue").textContent = `${stats.avgRR.toFixed(2)}R`;
+      $("expectancyValue").textContent = `Expectancy ${formatMoney(stats.expectancy, true)} / trade`;
+      $("totalTradesValue").textContent = stats.total;
+      $("activePeriodValue").textContent = activeRange === "ALL" ? "All-time history" : `${activeRange} analysis window`;
+    }
+
+    function renderEquity(trades) {
+      const series = buildEquitySeries(trades);
+      const current = series.values.at(-1) ?? STARTING_BALANCE;
+      const peak = Math.max(...series.values);
+      const drawdown = calculateDrawdown(series.values);
+      $("currentEquityValue").textContent = formatMoney(current);
+      $("peakEquityValue").textContent = formatMoney(peak);
+      $("maxDrawdownValue").textContent = `${Math.abs(drawdown).toFixed(2)}%`;
+      $("maxDrawdownValue").className = `text-2xl font-black mt-2 ${drawdown < 0 ? "text-error" : "text-primary"}`;
+      $("drawdownMeta").textContent = Math.abs(drawdown) <= 2 ? "Controlled risk" : Math.abs(drawdown) <= 5 ? "Moderate drawdown" : "Review risk limits";
+      if (equityChart) equityChart.destroy();
+      equityChart = new Chart($("analyticsEquityChart"), {
+        type: "line",
+        data: { labels: series.labels, datasets: [{ data: series.values, borderColor: "#4edea3", backgroundColor: "rgba(78,222,163,.14)", fill: true, borderWidth: 3, tension: .3, pointRadius: series.values.length < 18 ? 3 : 0, pointHoverRadius: 5 }] },
+        options: chartOptions({ moneyAxis: true, legend: false })
+      });
+    }
+
+    function chartOptions({ moneyAxis = false, horizontal = false, legend = false } = {}) {
+      return {
+        responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: legend, labels: { color: "#e0e3e5" } }, tooltip: { callbacks: moneyAxis ? { label: ctx => `${ctx.dataset.label || "Value"}: ${formatMoney(horizontal ? ctx.parsed.x : ctx.parsed.y, true)}` } : {} } },
+        scales: {
+          x: { grid: { color: "rgba(144,144,151,.10)" }, ticks: { color: "#909097", maxTicksLimit: 10 }, ...(horizontal && { ticks: { color: "#909097", callback: value => `$${Number(value).toLocaleString()}` } }) },
+          y: { grid: { color: "rgba(144,144,151,.10)" }, ticks: { color: "#909097", ...(moneyAxis && !horizontal ? { callback: value => `$${Number(value).toLocaleString()}` } : {}) } }
+        }
+      };
+    }
+
+    function renderBestWorst(trades) {
+      if (!trades.length) return;
+      const sorted = [...trades].sort((a, b) => number(a.profitLoss) - number(b.profitLoss));
+      const worst = sorted[0];
+      const best = sorted.at(-1);
+      $("bestTradePnl").textContent = formatMoney(best.profitLoss, true);
+      $("bestTradeSymbol").textContent = best.symbol || "Unknown";
+      $("bestTradeMeta").textContent = `${best.model || best.protocol || "Trade"} · ${formatDate(parseTradeDate(best))}`;
+      $("worstTradePnl").textContent = formatMoney(worst.profitLoss, true);
+      $("worstTradePnl").className = `text-2xl font-black mt-2 ${number(worst.profitLoss) < 0 ? "text-error" : "text-tertiary"}`;
+      $("worstTradeSymbol").textContent = worst.symbol || "Unknown";
+      $("worstTradeMeta").textContent = `${worst.model || worst.protocol || "Trade"} · ${formatDate(parseTradeDate(worst))}`;
+    }
+
+    function renderInstrumentChart(trades) {
+      const groups = groupTrades(trades, t => String(t.symbol || "Unknown").toUpperCase());
+      const rows = [...groups.entries()].map(([label, items]) => ({ label, pnl: items.reduce((s, t) => s + number(t.profitLoss), 0), count: items.length })).sort((a, b) => b.pnl - a.pnl);
+      if (instrumentChart) instrumentChart.destroy();
+      instrumentChart = new Chart($("instrumentChart"), {
+        type: "bar",
+        data: { labels: rows.map(r => r.label), datasets: [{ label: "Net P&L", data: rows.map(r => r.pnl), backgroundColor: rows.map(r => r.pnl >= 0 ? "rgba(78,222,163,.65)" : "rgba(255,180,171,.65)"), borderColor: rows.map(r => r.pnl >= 0 ? "#4edea3" : "#ffb4ab"), borderWidth: 1, borderRadius: 6 }] },
+        options: chartOptions({ moneyAxis: true, legend: false })
+      });
+      const best = rows[0];
+      $("bestSymbolValue").textContent = best ? `${best.label} (${formatMoney(best.pnl, true)})` : "—";
+    }
+
+    function renderSessionChart(trades) {
+      const sessions = ["Asia", "London", "New York", "Overlap", "Other"];
+      const totals = new Map(sessions.map(s => [s, 0]));
+      trades.forEach(t => {
+        const raw = String(t.session || "Other");
+        const key = sessions.includes(raw) ? raw : "Other";
+        totals.set(key, totals.get(key) + number(t.profitLoss));
+      });
+      const labels = [...totals.keys()].filter(key => totals.get(key) !== 0 || trades.some(t => (t.session || "Other") === key));
+      const values = labels.map(key => totals.get(key));
+      if (sessionChart) sessionChart.destroy();
+      sessionChart = new Chart($("sessionChart"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Net P&L", data: values, backgroundColor: values.map(v => v >= 0 ? "rgba(173,198,255,.65)" : "rgba(255,180,171,.65)"), borderColor: values.map(v => v >= 0 ? "#adc6ff" : "#ffb4ab"), borderWidth: 1, borderRadius: 6 }] },
+        options: { ...chartOptions({ moneyAxis: true, horizontal: true, legend: false }), indexAxis: "y" }
+      });
+      const bestIndex = values.length ? values.indexOf(Math.max(...values)) : -1;
+      $("bestSessionValue").textContent = bestIndex >= 0 ? `${labels[bestIndex]} (${formatMoney(values[bestIndex], true)})` : "—";
+    }
+
+    function renderDirection(trades) {
+      const container = $("directionCards");
+      container.innerHTML = ["Long", "Short"].map(direction => {
+        const items = trades.filter(t => String(t.direction || "").toLowerCase() === direction.toLowerCase());
+        const stats = calculateStats(items);
+        return `<div class="rounded-xl bg-surface-container-high p-5 border border-outline-variant"><div class="flex items-center justify-between"><span class="font-bold">${direction}</span><span class="text-xs px-2 py-1 rounded ${direction === "Long" ? "bg-tertiary-container text-tertiary" : "bg-error-container/40 text-error"}">${items.length} trades</span></div><p class="text-2xl font-black mt-4 ${stats.netPnl >= 0 ? "text-tertiary" : "text-error"}">${formatMoney(stats.netPnl, true)}</p><div class="flex justify-between text-xs text-on-surface-variant mt-4"><span>Win rate</span><strong class="text-on-surface">${stats.winRate.toFixed(1)}%</strong></div><div class="flex justify-between text-xs text-on-surface-variant mt-2"><span>Avg RR</span><strong class="text-on-surface">${stats.avgRR.toFixed(2)}R</strong></div></div>`;
+      }).join("");
+    }
+
+    function renderRR(trades) {
+      const bins = [
+        { label: "0 – 1R", test: v => v >= 0 && v < 1, color: "bg-error" },
+        { label: "1 – 2R", test: v => v >= 1 && v < 2, color: "bg-primary" },
+        { label: "2 – 3R", test: v => v >= 2 && v < 3, color: "bg-tertiary" },
+        { label: "3R+", test: v => v >= 3, color: "bg-secondary" }
+      ];
+      const values = trades.map(t => number(t.rr)).filter(v => v >= 0);
+      $("rrSubtitle").textContent = `Distribution by planned risk-to-reward ratio · ${values.length} measured trades`;
+      $("rrDistribution").innerHTML = bins.map(bin => {
+        const count = values.filter(bin.test).length;
+        const percent = values.length ? count / values.length * 100 : 0;
+        return `<div><div class="flex justify-between text-sm mb-2"><span>${bin.label}</span><span class="font-bold">${count} · ${percent.toFixed(0)}%</span></div><div class="w-full bg-surface-container-high rounded-full h-3 overflow-hidden"><div class="${bin.color} h-full rounded-full transition-all duration-500" style="width:${percent}%"></div></div></div>`;
+      }).join("");
+    }
+
+    function createHistogram(values, binCount = 7) {
+      if (!values.length) return { labels: [], counts: [] };
+      let min = Math.min(...values), max = Math.max(...values);
+      if (min === max) { min -= Math.max(Math.abs(min) * .25, 10); max += Math.max(Math.abs(max) * .25, 10); }
+      const width = (max - min) / binCount;
+      const counts = Array(binCount).fill(0);
+      values.forEach(value => { const i = Math.min(Math.floor((value - min) / width), binCount - 1); counts[Math.max(i, 0)]++; });
+      const labels = counts.map((_, i) => `${formatMoney(min + i * width)} to ${formatMoney(min + (i + 1) * width)}`);
+      return { labels, counts, centers: counts.map((_, i) => min + (i + .5) * width) };
+    }
+
+    function renderPnlDistribution(trades) {
+      const histogram = createHistogram(trades.map(t => number(t.profitLoss)));
+      if (pnlDistributionChart) pnlDistributionChart.destroy();
+      pnlDistributionChart = new Chart($("pnlDistributionChart"), {
+        type: "bar",
+        data: { labels: histogram.labels, datasets: [{ label: "Trades", data: histogram.counts, backgroundColor: (histogram.centers || []).map(v => v >= 0 ? "rgba(78,222,163,.65)" : "rgba(255,180,171,.65)"), borderRadius: 5 }] },
+        options: { ...chartOptions(), plugins: { legend: { display: false }, tooltip: { callbacks: { title: items => items[0]?.label || "", label: ctx => `${ctx.parsed.y} trade${ctx.parsed.y === 1 ? "" : "s"}` } } } }
+      });
+    }
+
+    function timeToMinutes(value) {
+      const match = String(value || "").match(/^(\d{1,2}):(\d{2})/);
+      return match ? number(match[1]) * 60 + number(match[2]) : null;
+    }
+
+    function renderDuration(trades) {
+      const points = trades.map(t => {
+        const entry = timeToMinutes(t.entryTime), exit = timeToMinutes(t.exitTime);
+        if (entry === null || exit === null) return null;
+        let duration = exit - entry;
+        if (duration < 0) duration += 1440;
+        return { x: Number((duration / 60).toFixed(2)), y: number(t.profitLoss), symbol: t.symbol || "Trade" };
+      }).filter(Boolean);
+      if (durationChart) durationChart.destroy();
+      durationChart = new Chart($("durationChart"), {
+        type: "scatter",
+        data: { datasets: [{ label: "Profitable", data: points.filter(p => p.y >= 0), backgroundColor: "#4edea3", pointRadius: 6, pointHoverRadius: 8 }, { label: "Losing", data: points.filter(p => p.y < 0), backgroundColor: "#ffb4ab", pointRadius: 6, pointHoverRadius: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: "#e0e3e5" } }, tooltip: { callbacks: { label: ctx => `${ctx.raw.symbol}: ${ctx.raw.x}h · ${formatMoney(ctx.raw.y, true)}` } } }, scales: { x: { title: { display: true, text: "Hold duration (hours)", color: "#c6c6cd" }, ticks: { color: "#909097" }, grid: { color: "rgba(144,144,151,.10)" } }, y: { title: { display: true, text: "P&L ($)", color: "#c6c6cd" }, ticks: { color: "#909097", callback: value => `$${value}` }, grid: { color: "rgba(144,144,151,.10)" } } } }
+      });
+      $("durationMessage").textContent = points.length ? `${points.length} trade${points.length === 1 ? "" : "s"} include both entry and exit times.` : "Add entry and exit times to trades to unlock duration analysis.";
+    }
+
+    function renderMistakes(trades) {
+      const counts = new Map();
+      trades.forEach(t => (Array.isArray(t.mistakeTags) ? t.mistakeTags : []).forEach(tag => { if (tag) counts.set(tag, (counts.get(tag) || 0) + 1); }));
+      const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+      const total = rows.reduce((sum, [, count]) => sum + count, 0);
+      if (!rows.length) {
+        $("mistakeAnalytics").innerHTML = `<div class="rounded-xl border border-dashed border-outline-variant p-6 text-center text-on-surface-variant"><span class="material-symbols-outlined text-3xl mb-2">verified</span><p>No mistake tags recorded in this range.</p></div>`;
+        $("aiObservation").textContent = "No recurring execution mistake is visible yet. Continue tagging mistakes after every trade to build a useful behavior dataset.";
+        $("focusArea").textContent = "Keep recording honest mistake tags after each execution.";
+        return;
+      }
+      const max = rows[0][1];
+      $("mistakeAnalytics").innerHTML = rows.slice(0, 6).map(([tag, count], index) => `<div><div class="flex justify-between text-sm mb-2"><span>${escapeHtml(tag)}</span><span class="font-bold ${index === 0 ? "text-error" : ""}">${count}</span></div><div class="w-full bg-surface-container-high rounded-full h-3 overflow-hidden"><div class="${index === 0 ? "bg-error" : index === 1 ? "bg-secondary" : "bg-primary"} h-full rounded-full" style="width:${count / max * 100}%"></div></div></div>`).join("");
+      const [topTag, topCount] = rows[0];
+      const percent = total ? topCount / total * 100 : 0;
+      $("aiObservation").innerHTML = `Your most frequent tagged mistake is <strong>${escapeHtml(topTag)}</strong>, representing ${percent.toFixed(0)}% of recorded mistake tags in this view.`;
+      $("focusArea").textContent = `Create one pre-trade rule specifically designed to prevent “${topTag}”.`;
+    }
+
+    function renderMonthlyTable(trades) {
+      const groups = groupTrades(trades, t => {
+        const date = parseTradeDate(t);
+        return date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}` : "Unknown";
+      });
+      const rows = [...groups.entries()].filter(([key]) => key !== "Unknown").map(([key, items]) => ({ key, items, stats: calculateStats(items) })).sort((a, b) => b.key.localeCompare(a.key));
+      $("monthlyTableBody").innerHTML = rows.length ? rows.map(({ key, stats }) => {
+        const date = new Date(`${key}-01T12:00:00`);
+        return `<tr class="hover:bg-surface-container-high/50"><td class="px-6 py-4 font-bold">${date.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</td><td class="px-6 py-4 text-right">${stats.total}</td><td class="px-6 py-4 text-right">${stats.wins}</td><td class="px-6 py-4 text-right">${stats.winRate.toFixed(1)}%</td><td class="px-6 py-4 text-right">${stats.avgRR.toFixed(2)}R</td><td class="px-6 py-4 text-right font-bold ${stats.netPnl >= 0 ? "text-tertiary" : "text-error"}">${formatMoney(stats.netPnl, true)}</td></tr>`;
+      }).join("") : `<tr><td colspan="6" class="px-6 py-10 text-center text-on-surface-variant">No monthly data available for this filter.</td></tr>`;
+    }
+
+    function renderAll() {
+      const trades = filterTrades();
+      renderKpis(trades);
+      renderEquity(trades);
+      renderBestWorst(trades);
+      renderInstrumentChart(trades);
+      renderSessionChart(trades);
+      renderDirection(trades);
+      renderRR(trades);
+      renderPnlDistribution(trades);
+      renderDuration(trades);
+      renderMistakes(trades);
+      renderMonthlyTable(trades);
+    }
+
+    async function loadTrades() {
+      setStatus("Loading live analytics from MongoDB...", "loading");
+      try {
+        const response = await fetch(API_URL, { headers: { Accept: "application/json" } });
+        if (!response.ok) throw new Error(`API returned ${response.status}`);
+        const payload = await response.json();
+        allTrades = Array.isArray(payload) ? payload : Array.isArray(payload.data) ? payload.data : [];
+        renderAll();
+        setStatus(`${allTrades.length} live trade${allTrades.length === 1 ? "" : "s"} analyzed successfully.`, "success");
+      } catch (error) {
+        console.error(error);
+        allTrades = [];
+        renderAll();
+        setStatus("Could not load analytics. The Render free server may be waking up—wait a moment and press refresh.", "error");
+      }
+    }
+
+    function exportAnalytics() {
+      const trades = filterTrades();
+      if (!trades.length) return setStatus("There are no filtered trades to export.", "error");
+      const headers = ["Date", "Symbol", "Direction", "Session", "Model", "Entry", "Exit", "Quantity", "P&L", "RR", "Result", "Rating"];
+      const rows = trades.map(t => [String(t.tradeDate || "").slice(0, 10), t.symbol, t.direction, t.session, t.model, t.entryPrice, t.exitPrice, t.quantity, t.profitLoss, t.rr, t.result, t.rating]);
+      const csv = [headers, ...rows].map(row => row.map(value => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `protrade-analytics-${activeRange.toLowerCase()}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    document.querySelectorAll(".range-btn").forEach(button => button.addEventListener("click", () => {
+      activeRange = button.dataset.range;
+      document.querySelectorAll(".range-btn").forEach(btn => btn.classList.toggle("active", btn === button));
+      renderAll();
+    }));
+    $("analyticsSearch").addEventListener("input", event => { searchTerm = event.target.value.trim().toLowerCase(); renderAll(); });
+    $("refreshBtn").addEventListener("click", loadTrades);
+    $("exportAnalyticsBtn").addEventListener("click", exportAnalytics);
+    loadTrades();
+  </script>
+</body>
+</html>

@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <script src="auth.js"></script>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Dashboard | ProTrade Analytics</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #101415; }
+    ::-webkit-scrollbar-thumb { background: #323537; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #45464d; }
+    .chart-container { position: relative; width: 100%; height: 240px; }
+    .glass-header { backdrop-filter: blur(12px); background: rgba(29, 32, 34, 0.8); }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #adc6ff; cursor: pointer; }
+  </style>
+  <script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-secondary-fixed-variant": "#004395", "on-error": "#690005", "secondary-container": "#0566d9", background: "#101415", "on-tertiary-container": "#009365", "primary-fixed": "#dae2fd", "on-background": "#e0e3e5", "on-primary-container": "#798098", "tertiary-container": "#001c10", secondary: "#adc6ff", "inverse-primary": "#565e74", "surface-variant": "#323537", "inverse-on-surface": "#2d3133", "tertiary-fixed-dim": "#4edea3", "primary-container": "#0f172a", surface: "#101415", primary: "#bec6e0", "inverse-surface": "#e0e3e5", "surface-container-lowest": "#0b0f10", "on-primary": "#283044", "error-container": "#93000a", "surface-container": "#1d2022", "on-tertiary-fixed": "#002113", outline: "#909097", "on-secondary-fixed": "#001a42", "on-error-container": "#ffdad6", "on-tertiary-fixed-variant": "#005236", "surface-dim": "#101415", "on-surface-variant": "#c6c6cd", "tertiary-fixed": "#6ffbbe", "surface-container-high": "#272a2c", "surface-tint": "#bec6e0", error: "#ffb4ab", "surface-bright": "#363a3b", "primary-fixed-dim": "#bec6e0", "secondary-fixed": "#d8e2ff", "on-surface": "#e0e3e5", "surface-container-highest": "#323537", tertiary: "#4edea3", "on-tertiary": "#003824", "outline-variant": "#45464d", "on-secondary": "#002e6a", "on-primary-fixed": "#131b2e", "on-secondary-container": "#e6ecff", "surface-container-low": "#191c1e", "on-primary-fixed-variant": "#3f465c", "secondary-fixed-dim": "#adc6ff"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px"}, spacing: {"container-padding": "2rem", "unit-xl": "2.5rem", "unit-sm": "0.5rem", gutter: "1.5rem", "unit-lg": "1.5rem", "unit-xs": "0.25rem", "unit-md": "1rem", "sidebar-width": "280px"}, fontFamily: {"display-lg": ["DM Sans"], "label-uppercase": ["DM Sans"], "body-lg": ["DM Sans"], "headline-lg": ["DM Sans"], "title-md": ["DM Sans"], "headline-lg-mobile": ["DM Sans"], "data-mono": ["DM Sans"], "body-sm": ["DM Sans"], headline: ["DM Sans"], display: ["DM Sans"], body: ["DM Sans"], label: ["DM Sans"]}, fontSize: {"display-lg": ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], "label-uppercase": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], "headline-lg": ["32px", {lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "700"}], "title-md": ["20px", {lineHeight: "1.4", fontWeight: "600"}], "headline-lg-mobile": ["24px", {lineHeight: "1.2", fontWeight: "700"}], "data-mono": ["14px", {lineHeight: "1", letterSpacing: "-0.01em", fontWeight: "500"}], "body-sm": ["14px", {lineHeight: "1.5", fontWeight: "400"}]}}}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-background text-on-background selection:bg-secondary-container selection:text-on-secondary-container min-h-screen pb-16 md:pb-0">
+<aside class="fixed left-0 top-0 h-full w-[280px] z-50 bg-surface-container-low border-r border-outline-variant flex-col py-unit-lg px-unit-md hidden md:flex">
+  <div class="mb-unit-xl px-unit-sm">
+    <a href="index.html" class="block"><h1 class="font-display-lg text-headline-lg font-black text-primary tracking-tight">ProTrade</h1><p class="font-label-uppercase text-label-uppercase text-on-surface-variant opacity-70">Institutional Grade</p></a>
+  </div>
+  <nav class="flex-1 space-y-unit-xs"><a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg font-semibold shadow-sm transition-all duration-150" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span class="font-title-md text-body-lg">Dashboard</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span class="font-title-md text-body-lg">Trades</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span class="font-title-md text-body-lg">Calendar</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span class="font-title-md text-body-lg">Analytics</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="psychology.html"><span class="material-symbols-outlined">psychology</span><span class="font-title-md text-body-lg">Psychology</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="ai-journal.html"><span class="material-symbols-outlined">smart_toy</span><span class="font-title-md text-body-lg">AI Journal</span></a><a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all duration-150" href="settings.html"><span class="material-symbols-outlined">settings</span><span class="font-title-md text-body-lg">Settings</span></a></nav>
+  <div class="mt-auto space-y-unit-lg">
+    <a href="dashboard.html" class="w-full py-unit-md px-unit-lg bg-tertiary text-on-tertiary rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-unit-sm"><span class="material-symbols-outlined text-[20px]">workspace_premium</span>Upgrade to Pro</a>
+    <div class="flex items-center gap-unit-md p-unit-sm border-t border-outline-variant pt-unit-lg">
+      <div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden"><span class="material-symbols-outlined text-primary">account_circle</span></div>
+      <div class="flex-1 min-w-0"><p id="sidebarProfileName" class="auth-user-name font-title-md text-body-sm font-bold text-on-surface truncate">Gautam</p><p class="font-label-uppercase text-[10px] text-tertiary flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" style='font-variation-settings: "FILL" 1;'>verified</span>PRO MEMBER</p></div>
+    </div>
+  </div>
+
+<button data-auth-logout type="button" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60">
+  <span class="material-symbols-outlined text-[20px]">logout</span>
+  Logout
+</button>
+
+</aside>
+<main class="md:ml-[280px] min-h-screen">
+<header class="sticky top-0 z-40 bg-surface-container/95 backdrop-blur border-b border-outline-variant shadow-sm w-full">
+  <div class="flex justify-between items-center w-full px-gutter h-16 max-w-[1600px] mx-auto">
+    <div class="flex items-center gap-4 flex-1">
+      <a href="index.html" class="md:hidden font-display-lg text-title-md font-bold text-primary">ProTrade</a>
+      <div class="relative hidden sm:block">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+        <input class="bg-surface-container-low border border-outline-variant rounded-full py-1.5 pl-10 pr-4 w-64 focus:ring-1 focus:ring-primary focus:outline-none text-body-sm text-on-surface" placeholder="Search dashboard..." type="text"/>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button class="p-2 text-on-surface-variant hover:bg-surface-bright rounded-full transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+      <a href="trades.html" class="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-body-sm flex items-center gap-2 hover:opacity-80 active:scale-95 transition-all"><span class="material-symbols-outlined text-[20px]">add</span><span class="hidden sm:inline">Add Trade</span></a>
+    </div>
+  </div>
+</header>
+
+<div class="p-gutter lg:p-unit-xl max-w-[1600px] mx-auto space-y-gutter">
+<div id="dashboardStatus" class="rounded-xl border border-outline-variant bg-surface-container-low px-4 py-3 text-body-sm text-on-surface-variant flex items-center gap-3">
+  <span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+  <span>Loading live dashboard data…</span>
+</div>
+<!-- 1. Row of Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-unit-md">
+
+  <div class="bg-surface-container-low p-5 rounded-2xl border border-outline-variant hover:border-primary/30 transition-colors">
+    <p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-2">Total Trades</p>
+    <div class="flex items-end justify-between">
+      <h2 id="totalTradesValue" class="font-headline-lg text-headline-lg text-on-surface">0</h2>
+      <span class="material-symbols-outlined text-on-surface-variant mb-1">history</span>
+    </div>
+    <p id="totalTradesMeta" class="text-xs text-on-surface-variant mt-3">0 this week</p>
+  </div>
+
+  <div class="bg-surface-container-low p-5 rounded-2xl border border-outline-variant hover:border-primary/30 transition-colors">
+    <p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-2">Win Rate</p>
+    <div class="flex items-end justify-between">
+      <h2 id="winRateValue" class="font-headline-lg text-headline-lg text-tertiary">0.0%</h2>
+      <span class="material-symbols-outlined text-tertiary mb-1">trending_up</span>
+    </div>
+    <p id="winRateMeta" class="text-xs text-on-surface-variant mt-3">0 wins, 0 losses</p>
+  </div>
+
+  <div class="bg-surface-container-low p-5 rounded-2xl border border-outline-variant hover:border-primary/30 transition-colors">
+    <p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-2">Avg RR</p>
+    <div class="flex items-end justify-between">
+      <h2 id="avgRRValue" class="font-headline-lg text-headline-lg text-on-surface">0.00R</h2>
+      <span class="material-symbols-outlined text-secondary mb-1">balance</span>
+    </div>
+    <p class="text-xs text-on-surface-variant mt-3">Risk reward ratio</p>
+  </div>
+
+  <div class="bg-surface-container-low p-5 rounded-2xl border border-outline-variant hover:border-primary/30 transition-colors">
+    <p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-2">Balance</p>
+    <div class="flex items-end justify-between">
+      <h2 id="balanceValue" class="font-headline-lg text-headline-lg text-primary">$100,000.00</h2>
+      <span class="material-symbols-outlined text-primary mb-1">account_balance_wallet</span>
+    </div>
+    <p id="balanceMeta" class="text-xs text-on-surface-variant mt-3">$0.00 net P&amp;L</p>
+  </div>
+
+  <div class="bg-surface-container-low p-5 rounded-2xl border border-outline-variant hover:border-primary/30 transition-colors">
+    <p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-2">Today's P&amp;L</p>
+    <div class="flex items-end justify-between">
+      <h2 id="todayPnlValue" class="font-headline-lg text-headline-lg text-on-surface">$0.00</h2>
+      <span class="material-symbols-outlined text-tertiary mb-1">payments</span>
+    </div>
+    <p id="todayPnlMeta" class="text-xs text-on-surface-variant mt-3">0 trades today</p>
+  </div>
+
+</div>
+<!-- Bento Layout Main Content -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter">
+<!-- 2. Main Section: Equity Curve Chart -->
+<div class="xl:col-span-8 bg-surface-container p-gutter rounded-2xl border border-outline-variant shadow-sm flex flex-col min-h-[500px]">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+<div>
+<h3 class="font-headline-lg text-title-md text-on-surface">Equity Curve</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Performance growth over selected timeframe</p>
+</div>
+<div class="flex bg-surface-container-high p-1 rounded-lg">
+<button type="button" data-range="7D" class="equity-range-btn px-3 py-1 text-label-uppercase font-label-uppercase text-on-surface-variant hover:text-on-surface transition-colors">1W</button>
+<button type="button" data-range="30D" class="equity-range-btn px-3 py-1 text-label-uppercase font-label-uppercase text-on-surface-variant rounded-md transition-all">1M</button>
+<button type="button" data-range="90D" class="equity-range-btn px-3 py-1 text-label-uppercase font-label-uppercase text-on-surface-variant hover:text-on-surface transition-colors">3M</button>
+<button type="button" data-range="YTD" class="equity-range-btn px-3 py-1 text-label-uppercase font-label-uppercase text-on-surface-variant hover:text-on-surface transition-colors">YTD</button>
+<button type="button" data-range="ALL" class="equity-range-btn px-3 py-1 text-label-uppercase font-label-uppercase text-on-surface-variant hover:text-on-surface transition-colors">ALL</button>
+</div>
+</div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4">
+    <p class="text-xs text-on-surface-variant font-label-uppercase mb-1">Current Equity</p>
+    <p id="currentEquityValue" class="text-xl font-bold text-on-surface">$100,000.00</p>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4">
+    <p class="text-xs text-on-surface-variant font-label-uppercase mb-1">Peak Equity</p>
+    <p id="peakEquityValue" class="text-xl font-bold text-primary">$100,000.00</p>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4">
+    <p class="text-xs text-on-surface-variant font-label-uppercase mb-1">Monthly Return</p>
+    <p id="monthlyReturnValue" class="text-xl font-bold text-on-surface">0.00%</p>
+  </div>
+
+  <div class="bg-surface-container-low border border-outline-variant rounded-xl p-4">
+    <p class="text-xs text-on-surface-variant font-label-uppercase mb-1">Max Drawdown</p>
+    <p id="maxDrawdownValue" class="text-xl font-bold text-on-surface">0.00%</p>
+  </div>
+</div>
+<!-- SVG Chart Representation -->
+<div class="flex-1 w-full relative pt-4">
+  <div class="h-[320px] w-full">
+    <canvas id="equityChart"></canvas>
+  </div>
+</div>
+
+<div class="flex justify-between items-center mt-6 pt-6 border-t border-outline-variant">
+<div class="flex gap-8">
+<div>
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant">Drawdown</p>
+<p id="drawdownFooterValue" class="font-title-md text-on-surface">0.00%</p>
+</div>
+<div>
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant">Profit Factor</p>
+<p id="profitFactorValue" class="font-title-md text-on-surface">0.00</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant text-body-sm italic">
+<span class="material-symbols-outlined text-sm" data-icon="sync">sync</span>
+                            <span id="lastUpdatedValue">Waiting for live data</span>
+                        </div>
+</div>
+</div>
+<!-- 3. Sidebar-like panel: Goal Tracker & Weekly Summary -->
+<div class="xl:col-span-4 space-y-gutter">
+<!-- Goal Tracker -->
+<div class="bg-surface-container p-gutter rounded-2xl border border-outline-variant shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline-lg text-title-md text-on-surface">Goal Tracker</h3>
+<button class="p-2 hover:bg-surface-bright rounded-full text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+</div>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between items-end mb-3">
+<div>
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant">Target</p>
+<p id="goalTargetValue" class="font-headline-lg text-headline-lg text-on-surface">$150,000.00</p>
+</div>
+<p id="goalPercentValue" class="font-title-md text-primary">0%</p>
+</div>
+<div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-0 transition-all duration-1000 ease-out" id="goalProgressBar" style="width: 75%;"></div>
+</div>
+</div>
+<div class="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant/50">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-tertiary" data-icon="lightbulb">lightbulb</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                                        <span id="goalInsight">Loading goal progress…</span>
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+<!-- 4. Weekly Summary -->
+<div class="bg-surface-container-high p-gutter rounded-2xl border border-outline-variant shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-gutter opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl" data-icon="calendar_today">calendar_today</span>
+</div>
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-6">
+<div>
+<p class="font-label-uppercase text-label-uppercase text-tertiary">Active Period</p>
+<h3 id="weekSummaryTitle" class="font-headline-lg text-title-md text-on-surface">Current Week Summary</h3>
+</div>
+<span id="weekStatusBadge" class="bg-surface-container-low text-on-surface-variant px-3 py-1 rounded-full text-label-uppercase font-label-uppercase">No Data</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant">
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-1">Trades</p>
+<p id="weekTradesValue" class="font-title-md text-on-surface">0</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant">
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-1">Result</p>
+<p id="weekResultValue" class="font-title-md text-on-surface">$0.00</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant">
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-1">Win Rate</p>
+<p id="weekWinRateValue" class="font-title-md text-on-surface">0.0%</p>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant">
+<p class="font-label-uppercase text-label-uppercase text-on-surface-variant mb-1">Avg Size</p>
+<p id="weekAvgSizeValue" class="font-title-md text-on-surface">0.00</p>
+</div>
+</div>
+<button class="w-full mt-6 flex items-center justify-center gap-2 font-label-uppercase text-label-uppercase text-on-surface-variant hover:text-primary transition-colors py-2 group/btn">
+                                View Weekly Breakdown
+                                <span class="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Trades Section -->
+<section class="bg-surface-container p-gutter rounded-2xl border border-outline-variant">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline-lg text-title-md text-on-surface">Recent Performance</h3>
+<div class="flex gap-2">
+<button class="p-2 bg-surface-container-high rounded-lg text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span>
+</button>
+<a href="trades.html" class="text-label-uppercase font-label-uppercase text-primary hover:underline">View All Trades</a>
+</div>
+</div>
+<div class="overflow-x-auto">
+  <table class="w-full text-left border-collapse">
+    <thead>
+      <tr class="border-b border-outline-variant">
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant">Trade ID</th>
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant">Date</th>
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant">Symbol</th>
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant">Direction</th>
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant">RR</th>
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant">P&amp;L</th>
+        <th class="pb-4 px-2 text-label-uppercase font-label-uppercase text-on-surface-variant text-right">Status</th>
+      </tr>
+    </thead>
+
+    <tbody id="recentTradesBody" class="divide-y divide-outline-variant/30">
+      <tr>
+        <td colspan="7" class="py-10 px-2 text-center text-on-surface-variant">Loading recent trades…</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</section>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant h-16 md:hidden flex items-center justify-around px-4 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.3)]"><a class="flex flex-col items-center justify-center text-primary font-bold" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] font-label-uppercase mt-1">Dashboard</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span class="text-[10px] font-label-uppercase mt-1">Trades</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] font-label-uppercase mt-1">Calendar</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span class="text-[10px] font-label-uppercase mt-1">Analytics</span></a><a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary" href="settings.html"><span class="material-symbols-outlined">account_circle</span><span class="text-[10px] font-label-uppercase mt-1">Profile</span></a></nav>
+<script>
+(() => {
+  "use strict";
+
+  const TRADES_API = "https://protrader-backend-n8oj.onrender.com/api/trades";
+  const SETTINGS_API = "https://protrader-backend-n8oj.onrender.com/api/settings";
+
+  let startingBalance = 100000;
+  let accountTarget = 150000;
+  let accountCurrency = "USD";
+  let profileName = "Gautam";
+
+  let allTrades = [];
+  let equityChart = null;
+  let activeRange = "30D";
+
+  const $ = (id) => document.getElementById(id);
+  const number = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+
+  const escapeHtml = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  const formatMoney = (value, showPlus = false) => {
+    const amount = number(value);
+    const sign = showPlus && amount > 0 ? "+" : "";
+    return `${sign}${new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: accountCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount)}`;
+  };
+
+  const formatPercent = (value, signed = false) => {
+    const amount = number(value);
+    const sign = signed && amount > 0 ? "+" : "";
+    return `${sign}${amount.toFixed(2)}%`;
+  };
+
+  function parseTradeDate(trade) {
+    const raw = trade?.tradeDate || trade?.createdAt;
+    if (!raw) return null;
+    const dateOnly = String(raw).slice(0, 10);
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(dateOnly)
+      ? new Date(`${dateOnly}T12:00:00`)
+      : new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const dateKey = (date) => {
+    if (!date) return "";
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const startOfWeek = (date = new Date()) => {
+    const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const day = result.getDay();
+    result.setDate(result.getDate() - (day === 0 ? 6 : day - 1));
+    result.setHours(0, 0, 0, 0);
+    return result;
+  };
+
+  function setStatus(message, type = "loading") {
+    const status = $("dashboardStatus");
+    if (!status) return;
+    const styles = {
+      loading: "border-outline-variant bg-surface-container-low text-on-surface-variant",
+      error: "border-error/50 bg-error-container/30 text-error",
+      success: "border-tertiary/40 bg-tertiary-container/30 text-tertiary"
+    };
+    const icons = { loading: "progress_activity", error: "error", success: "check_circle" };
+    status.className = `rounded-xl border px-4 py-3 text-body-sm flex items-center gap-3 ${styles[type]}`;
+    status.innerHTML = `<span class="material-symbols-outlined text-[20px] ${type === "loading" ? "animate-spin" : ""}">${icons[type]}</span><span>${escapeHtml(message)}</span>`;
+    status.classList.remove("hidden");
+    if (type === "success") setTimeout(() => status.classList.add("hidden"), 1800);
+  }
+
+  function tradeIsWin(trade) {
+    return trade.result === "Win" || number(trade.profitLoss) > 0;
+  }
+
+  function tradeIsLoss(trade) {
+    return trade.result === "Loss" || number(trade.profitLoss) < 0;
+  }
+
+  function calculateStats(trades) {
+    const total = trades.length;
+    const wins = trades.filter(tradeIsWin).length;
+    const losses = trades.filter(tradeIsLoss).length;
+    const grossProfit = trades.reduce((sum, trade) => sum + Math.max(number(trade.profitLoss), 0), 0);
+    const grossLoss = trades.reduce((sum, trade) => sum + Math.min(number(trade.profitLoss), 0), 0);
+    const netPnl = grossProfit + grossLoss;
+    const rrValues = trades.map(t => number(t.rr)).filter(v => v > 0);
+    const avgRR = rrValues.length ? rrValues.reduce((a, b) => a + b, 0) / rrValues.length : 0;
+    const winRate = total ? (wins / total) * 100 : 0;
+    const profitFactor = grossProfit / Math.max(Math.abs(grossLoss), 1);
+    return { total, wins, losses, grossProfit, grossLoss, netPnl, avgRR, winRate, profitFactor };
+  }
+
+  function getFilteredTrades(range) {
+    const now = new Date();
+    let cutoff = null;
+    if (range === "7D") cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+    if (range === "30D") cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+    if (range === "90D") cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89);
+    if (range === "YTD") cutoff = new Date(now.getFullYear(), 0, 1);
+    if (!cutoff) return [...allTrades];
+    return allTrades.filter(trade => {
+      const date = parseTradeDate(trade);
+      return date && date >= cutoff;
+    });
+  }
+
+  function buildEquitySeries(trades) {
+    const sorted = [...trades].sort((a, b) => (parseTradeDate(a)?.getTime() || 0) - (parseTradeDate(b)?.getTime() || 0));
+    const grouped = new Map();
+    sorted.forEach(trade => {
+      const key = dateKey(parseTradeDate(trade));
+      if (!key) return;
+      grouped.set(key, (grouped.get(key) || 0) + number(trade.profitLoss));
+    });
+
+    const labels = ["Start"];
+    const values = [startingBalance];
+    let equity = startingBalance;
+    for (const [key, pnl] of grouped.entries()) {
+      equity += pnl;
+      labels.push(new Date(`${key}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+      values.push(Number(equity.toFixed(2)));
+    }
+    return { labels, values };
+  }
+
+  function calculateDrawdown(values) {
+    let peak = values[0] || startingBalance;
+    let maxDrawdown = 0;
+    values.forEach(value => {
+      peak = Math.max(peak, value);
+      if (peak > 0) maxDrawdown = Math.min(maxDrawdown, ((value - peak) / peak) * 100);
+    });
+    return maxDrawdown;
+  }
+
+  function setPnlElement(element, value) {
+    if (!element) return;
+    element.textContent = formatMoney(value, true);
+    element.classList.remove("text-tertiary", "text-error", "text-on-surface");
+    element.classList.add(number(value) > 0 ? "text-tertiary" : number(value) < 0 ? "text-error" : "text-on-surface");
+  }
+
+  function renderTopStats() {
+    const stats = calculateStats(allTrades);
+    const today = dateKey(new Date());
+    const weekStart = startOfWeek();
+    const todayTrades = allTrades.filter(t => dateKey(parseTradeDate(t)) === today);
+    const weekTrades = allTrades.filter(t => {
+      const date = parseTradeDate(t);
+      return date && date >= weekStart;
+    });
+    const todayPnl = todayTrades.reduce((sum, trade) => sum + number(trade.profitLoss), 0);
+    const weekPnl = weekTrades.reduce((sum, trade) => sum + number(trade.profitLoss), 0);
+    const balance = startingBalance + stats.netPnl;
+
+    $("totalTradesValue").textContent = stats.total;
+    $("totalTradesMeta").textContent = `${weekTrades.length} ${weekTrades.length === 1 ? "trade" : "trades"} this week`;
+    $("winRateValue").textContent = `${stats.winRate.toFixed(1)}%`;
+    $("winRateMeta").textContent = `${stats.wins} wins, ${stats.losses} losses`;
+    $("avgRRValue").textContent = `${stats.avgRR.toFixed(2)}R`;
+    $("balanceValue").textContent = formatMoney(balance);
+    $("balanceMeta").textContent = `${formatMoney(stats.netPnl, true)} total P&L • ${formatMoney(weekPnl, true)} this week`;
+    setPnlElement($("todayPnlValue"), todayPnl);
+    $("todayPnlMeta").textContent = `${todayTrades.length} ${todayTrades.length === 1 ? "trade" : "trades"} today`;
+    $("profitFactorValue").textContent = stats.profitFactor.toFixed(2);
+  }
+
+  function renderEquity() {
+    const trades = getFilteredTrades(activeRange);
+    const stats = calculateStats(trades);
+    const series = buildEquitySeries(trades);
+    const currentEquity = series.values.at(-1) ?? startingBalance;
+    const peakEquity = Math.max(...series.values);
+    const maxDrawdown = calculateDrawdown(series.values);
+
+    const now = new Date();
+    const monthTrades = allTrades.filter(trade => {
+      const date = parseTradeDate(trade);
+      return date && date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    });
+    const monthlyPnl = monthTrades.reduce((sum, trade) => sum + number(trade.profitLoss), 0);
+    const monthlyReturn = startingBalance ? (monthlyPnl / startingBalance) * 100 : 0;
+
+    $("currentEquityValue").textContent = formatMoney(currentEquity);
+    $("peakEquityValue").textContent = formatMoney(peakEquity);
+    $("monthlyReturnValue").textContent = formatPercent(monthlyReturn, true);
+    $("monthlyReturnValue").className = `text-xl font-bold ${monthlyReturn > 0 ? "text-tertiary" : monthlyReturn < 0 ? "text-error" : "text-on-surface"}`;
+    $("maxDrawdownValue").textContent = formatPercent(maxDrawdown);
+    $("maxDrawdownValue").className = `text-xl font-bold ${maxDrawdown < 0 ? "text-error" : "text-on-surface"}`;
+    $("drawdownFooterValue").textContent = formatPercent(maxDrawdown);
+    $("profitFactorValue").textContent = stats.profitFactor.toFixed(2);
+
+    const ctx = $("equityChart");
+    if (equityChart) equityChart.destroy();
+    equityChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: series.labels,
+        datasets: [{
+          label: "Equity",
+          data: series.values,
+          borderColor: "#4edea3",
+          backgroundColor: "rgba(78, 222, 163, 0.14)",
+          pointBackgroundColor: "#4edea3",
+          pointRadius: series.values.length <= 12 ? 3 : 0,
+          pointHoverRadius: 5,
+          borderWidth: 3,
+          fill: true,
+          tension: 0.32
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: context => `Equity: ${formatMoney(context.parsed.y)}` }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#909097", maxTicksLimit: 8 } },
+          y: {
+            grid: { color: "rgba(144, 144, 151, 0.12)" },
+            ticks: { color: "#909097", callback: value => `$${Number(value).toLocaleString("en-US")}` }
+          }
+        }
+      }
+    });
+  }
+
+  function renderGoal() {
+    const netPnl = allTrades.reduce((sum, trade) => sum + number(trade.profitLoss), 0);
+    const currentBalance = startingBalance + netPnl;
+    const progress = Math.max(0, Math.min(100, (currentBalance / accountTarget) * 100));
+    const remaining = Math.max(accountTarget - currentBalance, 0);
+    $("goalTargetValue").textContent = formatMoney(accountTarget);
+    $("goalPercentValue").textContent = `${progress.toFixed(1)}%`;
+    $("goalProgressBar").style.width = `${progress}%`;
+    $("goalInsight").innerHTML = remaining > 0
+      ? `Current balance is <span class="text-on-surface font-bold">${formatMoney(currentBalance)}</span>. You need <span class="text-on-surface font-bold">${formatMoney(remaining)}</span> more to reach the target.`
+      : `Target achieved. Current balance is <span class="text-tertiary font-bold">${formatMoney(currentBalance)}</span>.`;
+  }
+
+  function getISOWeek(date) {
+    const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = target.getUTCDay() || 7;
+    target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+    return Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+  }
+
+  function renderWeeklySummary() {
+    const now = new Date();
+    const start = startOfWeek(now);
+    const weekTrades = allTrades.filter(trade => {
+      const date = parseTradeDate(trade);
+      return date && date >= start;
+    });
+    const stats = calculateStats(weekTrades);
+    const avgSize = weekTrades.length
+      ? weekTrades.reduce((sum, trade) => sum + number(trade.quantity), 0) / weekTrades.length
+      : 0;
+
+    $("weekSummaryTitle").textContent = `Week ${getISOWeek(now)} Summary`;
+    $("weekTradesValue").textContent = stats.total;
+    setPnlElement($("weekResultValue"), stats.netPnl);
+    $("weekWinRateValue").textContent = `${stats.winRate.toFixed(1)}%`;
+    $("weekAvgSizeValue").textContent = avgSize.toFixed(2);
+
+    const badge = $("weekStatusBadge");
+    badge.className = "px-3 py-1 rounded-full text-label-uppercase font-label-uppercase";
+    if (!stats.total) {
+      badge.textContent = "No Trades";
+      badge.classList.add("bg-surface-container-low", "text-on-surface-variant");
+    } else if (stats.netPnl > 0) {
+      badge.textContent = "Profitable";
+      badge.classList.add("bg-tertiary-container", "text-tertiary");
+    } else if (stats.netPnl < 0) {
+      badge.textContent = "Losing";
+      badge.classList.add("bg-error-container", "text-error");
+    } else {
+      badge.textContent = "Break Even";
+      badge.classList.add("bg-secondary-container", "text-on-secondary-container");
+    }
+  }
+
+  function renderRecentTrades(query = "") {
+    const body = $("recentTradesBody");
+    const filtered = [...allTrades]
+      .sort((a, b) => (parseTradeDate(b)?.getTime() || 0) - (parseTradeDate(a)?.getTime() || 0))
+      .filter(trade => `${trade.symbol || ""} ${trade.direction || ""} ${trade.result || ""}`.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, 5);
+
+    if (!filtered.length) {
+      body.innerHTML = `<tr><td colspan="7" class="py-10 px-2 text-center text-on-surface-variant">${query ? "No matching trades found." : "No trades recorded yet."}</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = filtered.map((trade, index) => {
+      const pnl = number(trade.profitLoss);
+      const isWin = trade.result === "Win" || pnl > 0;
+      const isLoss = trade.result === "Loss" || pnl < 0;
+      const pnlClass = pnl > 0 ? "text-tertiary" : pnl < 0 ? "text-error" : "text-on-surface";
+      const directionClass = trade.direction === "Short" ? "text-error" : "text-tertiary";
+      const statusClass = isWin ? "bg-tertiary-container/30 text-tertiary" : isLoss ? "bg-error-container/30 text-error" : "bg-secondary-container/30 text-secondary";
+      const status = trade.result || (pnl > 0 ? "Win" : pnl < 0 ? "Loss" : "BE");
+      const date = parseTradeDate(trade);
+      return `
+        <tr class="hover:bg-surface-container-high/50 transition-colors">
+          <td class="py-4 px-2 font-data-mono text-on-surface">#${escapeHtml(String(trade._id || index + 1).slice(-6).toUpperCase())}</td>
+          <td class="py-4 px-2 text-on-surface-variant">${date ? date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : "—"}</td>
+          <td class="py-4 px-2 font-data-mono text-on-surface">${escapeHtml(trade.symbol || "—")}</td>
+          <td class="py-4 px-2 ${directionClass} font-bold">${escapeHtml(trade.direction || "—")}</td>
+          <td class="py-4 px-2 text-on-surface">${number(trade.rr).toFixed(2)}R</td>
+          <td class="py-4 px-2 font-data-mono ${pnlClass}">${formatMoney(pnl, true)}</td>
+          <td class="py-4 px-2 text-right"><span class="${statusClass} text-[10px] px-2 py-1 rounded uppercase font-bold">${escapeHtml(status)}</span></td>
+        </tr>`;
+    }).join("");
+  }
+
+  function updateRangeButtons() {
+    document.querySelectorAll(".equity-range-btn").forEach(button => {
+      const active = button.dataset.range === activeRange;
+      button.classList.toggle("bg-secondary-container", active);
+      button.classList.toggle("text-on-secondary-container", active);
+      button.classList.toggle("rounded-md", active);
+      button.classList.toggle("text-on-surface-variant", !active);
+    });
+  }
+
+  function renderDashboard() {
+    renderTopStats();
+    renderEquity();
+    renderGoal();
+    renderWeeklySummary();
+    renderRecentTrades();
+    $("lastUpdatedValue").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  async function loadDashboard() {
+    setStatus("Loading live trades and account settings from MongoDB…", "loading");
+
+    try {
+      const [tradeResponse, settingResponse] = await Promise.all([
+        fetch(TRADES_API, { headers: { Accept: "application/json" } }),
+        fetch(SETTINGS_API, { headers: { Accept: "application/json" } })
+      ]);
+
+      const tradeBody = await tradeResponse.json().catch(() => ({}));
+      const settingBody = await settingResponse.json().catch(() => ({}));
+
+      if (!tradeResponse.ok) {
+        throw new Error(tradeBody.message || `Trade request failed (${tradeResponse.status})`);
+      }
+
+      if (!settingResponse.ok) {
+        throw new Error(settingBody.message || `Settings request failed (${settingResponse.status})`);
+      }
+
+      const settings = settingBody.data || {};
+      startingBalance = number(settings.startingBalance) || 100000;
+      accountTarget = number(settings.targetBalance) || 150000;
+      accountCurrency = settings.currency || "USD";
+      profileName = settings.fullName || "Gautam";
+
+      if ($("sidebarProfileName")) {
+        $("sidebarProfileName").textContent = profileName;
+      }
+
+      allTrades = Array.isArray(tradeBody.data) ? tradeBody.data : [];
+      renderDashboard();
+
+      setStatus(
+        `Dashboard updated with ${allTrades.length} live ${allTrades.length === 1 ? "trade" : "trades"} and your saved account settings.`,
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      setStatus(`Could not load dashboard data: ${error.message}`, "error");
+      $("recentTradesBody").innerHTML = '<tr><td colspan="7" class="py-10 px-2 text-center text-error">Could not load trades or settings. Please refresh after the Render server wakes up.</td></tr>';
+    }
+  }
+
+  document.querySelectorAll(".equity-range-btn").forEach(button => {
+    button.addEventListener("click", () => {
+      activeRange = button.dataset.range;
+      updateRangeButtons();
+      renderEquity();
+    });
+  });
+
+  const searchInput = document.querySelector('input[placeholder="Search dashboard..."]');
+  if (searchInput) {
+    searchInput.addEventListener("input", event => renderRecentTrades(event.target.value.trim()));
+    searchInput.addEventListener("focus", () => searchInput.classList.add("w-80"));
+    searchInput.addEventListener("blur", () => searchInput.classList.remove("w-80"));
+  }
+
+  updateRangeButtons();
+  loadDashboard();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <script src="auth.js"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Settings | ProTrade</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d1112;
+      --sidebar: #0a0e0f;
+      --panel: #171b1d;
+      --panel-2: #1e2326;
+      --panel-3: #252b2f;
+      --line: #343b40;
+      --text: #eef1f2;
+      --muted: #9da7ad;
+      --primary: #b9c9ff;
+      --primary-strong: #7ca2ff;
+      --green: #4ee0a4;
+      --red: #ff827b;
+      --amber: #ffc66d;
+      --shadow: 0 20px 60px rgba(0,0,0,.28);
+    }
+
+    html[data-theme="light"] {
+      --bg: #f4f6f8;
+      --sidebar: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f7f9fb;
+      --panel-3: #eef2f5;
+      --line: #dbe1e5;
+      --text: #182026;
+      --muted: #66717a;
+      --primary: #315dce;
+      --primary-strong: #234eae;
+      --green: #087c56;
+      --red: #b42318;
+      --amber: #9b5d00;
+      --shadow: 0 20px 60px rgba(33,45,54,.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 24;
+      vertical-align: middle;
+    }
+
+    .sidebar {
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+    }
+
+    .topbar {
+      background: color-mix(in srgb, var(--panel) 90%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 1px 0 rgba(255,255,255,.02);
+    }
+
+    .panel-soft {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+    }
+
+    .field,
+    .select-field {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 0 14px;
+      outline: none;
+      transition: .18s ease;
+    }
+
+    .field:focus,
+    .select-field:focus {
+      border-color: var(--primary-strong);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-strong) 22%, transparent);
+    }
+
+    .field::placeholder { color: var(--muted); }
+
+    .label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 7px;
+    }
+
+    .tab-button {
+      color: var(--muted);
+      border: 1px solid transparent;
+      transition: .18s ease;
+    }
+
+    .tab-button:hover {
+      color: var(--text);
+      background: var(--panel-2);
+    }
+
+    .tab-button.active {
+      color: var(--text);
+      background: var(--panel-2);
+      border-color: var(--line);
+      box-shadow: inset 3px 0 0 var(--primary-strong);
+    }
+
+    .nav-link {
+      color: var(--muted);
+      transition: .18s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      background: var(--panel-2);
+    }
+
+    .nav-link.active {
+      color: #fff;
+      background: #155fc7;
+    }
+
+    html[data-theme="light"] .nav-link.active {
+      color: #fff;
+      background: #315dce;
+    }
+
+    .primary-btn {
+      background: var(--primary);
+      color: #17213b;
+      transition: .18s ease;
+    }
+
+    html[data-theme="light"] .primary-btn { color: white; }
+
+    .primary-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .primary-btn:disabled { opacity: .55; transform: none; cursor: not-allowed; }
+
+    .secondary-btn {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      transition: .18s ease;
+    }
+
+    .secondary-btn:hover { background: var(--panel-3); }
+
+    .danger-btn {
+      border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+      color: var(--red);
+      background: color-mix(in srgb, var(--red) 8%, transparent);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--muted);
+    }
+
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 14%, transparent);
+    }
+
+    .toggle {
+      appearance: none;
+      width: 48px;
+      height: 27px;
+      border-radius: 999px;
+      background: var(--panel-3);
+      border: 1px solid var(--line);
+      position: relative;
+      cursor: pointer;
+      transition: .2s ease;
+      flex: 0 0 auto;
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      width: 21px;
+      height: 21px;
+      left: 2px;
+      top: 2px;
+      border-radius: 50%;
+      background: #dfe5e8;
+      transition: .2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,.25);
+    }
+
+    .toggle:checked {
+      background: #236fda;
+      border-color: #236fda;
+    }
+
+    .toggle:checked::after { transform: translateX(21px); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .progress-track {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--panel-3);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary-strong), var(--green));
+    }
+
+    .save-bar {
+      background: color-mix(in srgb, var(--panel) 93%, transparent);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 100;
+      min-width: 280px;
+      max-width: 420px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 15px 16px;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s ease;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+    .toast.error { border-color: color-mix(in srgb, var(--red) 45%, var(--line)); }
+
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: var(--panel-3);
+    }
+
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.07), transparent);
+      animation: shimmer 1.35s infinite;
+    }
+
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--panel-3); border-radius: 999px; }
+
+    @media (max-width: 1023px) {
+      .settings-layout { grid-template-columns: 1fr !important; }
+      .tabs-panel { position: static !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <aside class="sidebar fixed left-0 top-0 z-50 hidden h-full w-[280px] flex-col px-4 py-6 md:flex">
+    <div class="mb-10 px-2">
+      <a href="index.html">
+        <h1 class="text-3xl font-black" style="color:var(--primary)">ProTrade</h1>
+        <p class="text-xs font-bold uppercase tracking-[.18em]" style="color:var(--muted)">Institutional Grade</p>
+      </a>
+    </div>
+
+    <nav class="flex-1 space-y-1">
+      <a class="nav-link flex items-center gap-3 rounded-xl px-4 py-3" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+      <a class="nav-link flex items-center gap-3 rounded-xl px-4 py-3" href="trades.html"><span class="material-symbols-outlined">receipt_long</span>Trades</a>
+      <a class="nav-link flex items-center gap-3 rounded-xl px-4 py-3" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span>Calendar</a>
+      <a class="nav-link flex items-center gap-3 rounded-xl px-4 py-3" href="analytics.html"><span class="material-symbols-outlined">analytics</span>Analytics</a>
+      <a class="nav-link flex items-center gap-3 rounded-xl px-4 py-3" href="psychology.html"><span class="material-symbols-outlined">psychology</span>Psychology</a>
+      <a class="nav-link flex items-center gap-3 rounded-xl px-4 py-3" href="ai-journal.html"><span class="material-symbols-outlined">auto_stories</span>AI Journal</a>
+      <a class="nav-link active flex items-center gap-3 rounded-xl px-4 py-3 font-semibold" href="settings.html"><span class="material-symbols-outlined">settings</span>Settings</a>
+    </nav>
+
+    <div class="panel-soft rounded-2xl p-4">
+      <div class="flex items-center gap-3">
+        <div id="avatarSmall" class="flex h-11 w-11 items-center justify-center rounded-xl text-sm font-black" style="background:var(--panel-3);color:var(--primary)">G</div>
+        <div class="min-w-0">
+          <p id="sidebarProfileName" class="auth-user-name truncate font-bold">Gautam</p>
+          <p class="text-xs" style="color:var(--muted)">Workspace owner</p>
+        </div>
+      </div>
+    </div>
+  
+<button data-auth-logout type="button" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60">
+  <span class="material-symbols-outlined text-[20px]">logout</span>
+  Logout
+</button>
+
+</aside>
+
+  <main class="min-h-screen md:ml-[280px]">
+    <header class="topbar sticky top-0 z-40">
+      <div class="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-5 lg:px-8">
+        <div>
+          <h1 class="text-lg font-extrabold">Settings</h1>
+          <p class="hidden text-xs sm:block" style="color:var(--muted)">Manage your account, trading rules and workspace preferences.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div id="syncState" class="hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold sm:flex" style="border-color:var(--line);background:var(--panel-2);color:var(--muted)">
+            <span id="syncDot" class="status-dot"></span>
+            <span id="syncText">Checking API</span>
+          </div>
+          <button id="headerSaveBtn" class="primary-btn rounded-xl px-4 py-2.5 text-sm font-extrabold">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-[1600px] px-5 py-6 lg:px-8 lg:py-8">
+      <section class="panel mb-6 overflow-hidden rounded-3xl">
+        <div class="grid gap-6 p-6 lg:grid-cols-[1.2fr_.8fr] lg:p-8">
+          <div class="flex items-start gap-5">
+            <div id="avatarLarge" class="flex h-20 w-20 flex-none items-center justify-center rounded-2xl text-2xl font-black" style="background:linear-gradient(135deg,#1a67db,#6f8fff);color:white)">G</div>
+            <div>
+              <p class="mb-1 text-xs font-extrabold uppercase tracking-[.15em]" style="color:var(--primary)">ProTrade Workspace</p>
+              <h2 id="heroName" class="text-2xl font-extrabold">Gautam</h2>
+              <p id="heroRole" class="mt-1" style="color:var(--muted)">Independent Trader</p>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <span class="rounded-full border px-3 py-1 text-xs font-bold" style="border-color:var(--line);background:var(--panel-2);color:var(--green)">MongoDB synced</span>
+                <span class="rounded-full border px-3 py-1 text-xs font-bold" style="border-color:var(--line);background:var(--panel-2);color:var(--muted)">Single-user workspace</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="panel-soft rounded-2xl p-4">
+              <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">Starting Balance</p>
+              <p id="summaryStartingBalance" class="mt-2 text-xl font-extrabold">—</p>
+            </div>
+            <div class="panel-soft rounded-2xl p-4">
+              <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">Target Balance</p>
+              <p id="summaryTargetBalance" class="mt-2 text-xl font-extrabold">—</p>
+            </div>
+            <div class="panel-soft rounded-2xl p-4">
+              <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">Risk / Trade</p>
+              <p id="summaryRisk" class="mt-2 text-xl font-extrabold">—</p>
+            </div>
+            <div class="panel-soft rounded-2xl p-4">
+              <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">Daily Loss Limit</p>
+              <p id="summaryDailyLoss" class="mt-2 text-xl font-extrabold">—</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="settings-layout grid grid-cols-[250px_minmax(0,1fr)] gap-6">
+        <aside class="tabs-panel panel sticky top-24 h-fit rounded-2xl p-3">
+          <p class="px-3 pb-2 pt-1 text-[11px] font-extrabold uppercase tracking-[.16em]" style="color:var(--muted)">Workspace Settings</p>
+
+          <button class="tab-button active flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left" data-tab="profile">
+            <span class="material-symbols-outlined">person</span>
+            <span>
+              <span class="block font-bold">Profile</span>
+              <span class="block text-xs" style="color:var(--muted)">Identity and timezone</span>
+            </span>
+          </button>
+
+          <button class="tab-button flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left" data-tab="account">
+            <span class="material-symbols-outlined">account_balance_wallet</span>
+            <span>
+              <span class="block font-bold">Account & Goals</span>
+              <span class="block text-xs" style="color:var(--muted)">Balance and targets</span>
+            </span>
+          </button>
+
+          <button class="tab-button flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left" data-tab="risk">
+            <span class="material-symbols-outlined">shield</span>
+            <span>
+              <span class="block font-bold">Risk Rules</span>
+              <span class="block text-xs" style="color:var(--muted)">Execution guardrails</span>
+            </span>
+          </button>
+
+          <button class="tab-button flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left" data-tab="preferences">
+            <span class="material-symbols-outlined">tune</span>
+            <span>
+              <span class="block font-bold">Preferences</span>
+              <span class="block text-xs" style="color:var(--muted)">Display and reminders</span>
+            </span>
+          </button>
+
+
+          <button class="tab-button flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left" data-tab="security">
+            <span class="material-symbols-outlined">shield_lock</span>
+            <span>
+              <span class="block font-bold">Security</span>
+              <span class="block text-xs" style="color:var(--muted)">Password and sessions</span>
+            </span>
+          </button>
+
+          <button class="tab-button flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left" data-tab="system">
+            <span class="material-symbols-outlined">dns</span>
+            <span>
+              <span class="block font-bold">Data & System</span>
+              <span class="block text-xs" style="color:var(--muted)">API status and export</span>
+            </span>
+          </button>
+        </aside>
+
+        <section class="min-w-0">
+          <div id="loadingView" class="space-y-4">
+            <div class="panel rounded-2xl p-6">
+              <div class="skeleton h-7 w-48 rounded-lg"></div>
+              <div class="mt-3 skeleton h-4 w-80 max-w-full rounded-lg"></div>
+              <div class="mt-7 grid gap-4 md:grid-cols-2">
+                <div class="skeleton h-24 rounded-xl"></div>
+                <div class="skeleton h-24 rounded-xl"></div>
+                <div class="skeleton h-24 rounded-xl"></div>
+                <div class="skeleton h-24 rounded-xl"></div>
+              </div>
+            </div>
+          </div>
+
+          <form id="settingsForm" class="hidden">
+            <div id="panel-profile" class="tab-panel active space-y-5">
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-6">
+                  <h2 class="text-xl font-extrabold">Profile Information</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">This information appears across your ProTrade workspace.</p>
+                </div>
+
+                <div class="grid gap-5 md:grid-cols-2">
+                  <label>
+                    <span class="label">Full Name</span>
+                    <input id="fullName" class="field" type="text" maxlength="100" placeholder="Your name" required/>
+                  </label>
+
+                  <label>
+                    <span class="label">Email Address</span>
+                    <input id="email" class="field" type="email" maxlength="150" placeholder="you@example.com"/>
+                  </label>
+
+                  <label>
+                    <span class="label">Trading Role</span>
+                    <input id="tradingRole" class="field" type="text" maxlength="100" placeholder="Independent Trader"/>
+                  </label>
+
+                  <label>
+                    <span class="label">Timezone</span>
+                    <select id="timezone" class="select-field">
+                      <option value="Asia/Kolkata">India Standard Time (GMT+05:30)</option>
+                      <option value="Europe/London">London (GMT+00:00)</option>
+                      <option value="America/New_York">New York (GMT-05:00)</option>
+                      <option value="Asia/Tokyo">Tokyo (GMT+09:00)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="flex items-start gap-4">
+                  <span class="material-symbols-outlined mt-0.5" style="color:var(--amber)">lock</span>
+                  <div>
+                    <h3 class="font-extrabold">Authentication status</h3>
+                    <p class="mt-1 text-sm leading-6" style="color:var(--muted)">
+                      This project currently uses one global workspace. Password changes and multiple user profiles will become available after the authentication module is added.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div id="panel-account" class="tab-panel space-y-5">
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-6">
+                  <h2 class="text-xl font-extrabold">Trading Account & Goals</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">These values drive Dashboard balance, equity and goal progress.</p>
+                </div>
+
+                <div class="grid gap-5 md:grid-cols-2">
+                  <label>
+                    <span class="label">Account Currency</span>
+                    <select id="currency" class="select-field">
+                      <option value="USD">USD — US Dollar</option>
+                      <option value="INR">INR — Indian Rupee</option>
+                      <option value="EUR">EUR — Euro</option>
+                      <option value="GBP">GBP — British Pound</option>
+                      <option value="JPY">JPY — Japanese Yen</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span class="label">Preferred Session</span>
+                    <select id="preferredSession" class="select-field">
+                      <option value="London">London</option>
+                      <option value="New York">New York</option>
+                      <option value="Asia">Asia</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span class="label">Starting Balance</span>
+                    <input id="startingBalance" class="field" type="number" min="0" step="0.01"/>
+                    <p class="helper">The baseline used to calculate account equity.</p>
+                  </label>
+
+                  <label>
+                    <span class="label">Target Balance</span>
+                    <input id="targetBalance" class="field" type="number" min="0" step="0.01"/>
+                    <p class="helper">Your account growth target shown on Dashboard.</p>
+                  </label>
+                </div>
+
+                <div class="panel-soft mt-6 rounded-2xl p-5">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="font-bold">Goal progress baseline</p>
+                      <p id="goalProgressLabel" class="mt-1 text-sm" style="color:var(--muted)">—</p>
+                    </div>
+                    <p id="goalProgressPercent" class="text-lg font-extrabold" style="color:var(--green)">0%</p>
+                  </div>
+                  <div class="progress-track mt-4">
+                    <div id="goalProgressFill" class="progress-fill" style="width:0%"></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div id="panel-risk" class="tab-panel space-y-5">
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-6">
+                  <h2 class="text-xl font-extrabold">Risk Management Rules</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">Create clear limits before the market opens.</p>
+                </div>
+
+                <div class="grid gap-5 md:grid-cols-2">
+                  <label>
+                    <span class="label">Risk Per Trade (%)</span>
+                    <input id="riskPerTrade" class="field" type="number" min="0" max="100" step="0.1"/>
+                    <p class="helper">Recommended professional range: 0.25%–2%.</p>
+                  </label>
+
+                  <label>
+                    <span class="label">Max Daily Loss (%)</span>
+                    <input id="maxDailyLoss" class="field" type="number" min="0" max="100" step="0.1"/>
+                    <p class="helper">Stop trading after this daily drawdown.</p>
+                  </label>
+
+                  <label>
+                    <span class="label">Max Trades Per Day</span>
+                    <input id="maxTradesPerDay" class="field" type="number" min="1" max="100" step="1"/>
+                    <p class="helper">Prevents overtrading and revenge entries.</p>
+                  </label>
+
+                  <label>
+                    <span class="label">Default Risk-to-Reward</span>
+                    <input id="defaultRR" class="field" type="number" min="0" max="100" step="0.1"/>
+                    <p class="helper">Your minimum planned RR benchmark.</p>
+                  </label>
+                </div>
+              </section>
+
+              <section id="riskWarningCard" class="panel rounded-2xl p-6">
+                <div class="flex items-start gap-4">
+                  <span class="material-symbols-outlined mt-0.5" style="color:var(--green)">verified_user</span>
+                  <div>
+                    <h3 id="riskWarningTitle" class="font-extrabold">Risk rules look controlled</h3>
+                    <p id="riskWarningText" class="mt-1 text-sm leading-6" style="color:var(--muted)">Your selected limits are within a reasonable range.</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div id="panel-preferences" class="tab-panel space-y-5">
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-6">
+                  <h2 class="text-xl font-extrabold">Display Preferences</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">Choose how ProTrade should look and format information.</p>
+                </div>
+
+                <div class="grid gap-5 md:grid-cols-2">
+                  <label>
+                    <span class="label">Theme</span>
+                    <select id="theme" class="select-field">
+                      <option value="Dark">Dark</option>
+                      <option value="Light">Light</option>
+                      <option value="System">System</option>
+                    </select>
+                    <p class="helper">Theme preview applies immediately on this page.</p>
+                  </label>
+
+                  <label>
+                    <span class="label">Date Format</span>
+                    <select id="dateFormat" class="select-field">
+                      <option value="DD MMM YYYY">DD MMM YYYY</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-5">
+                  <h2 class="text-xl font-extrabold">Notifications & Reminders</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">Control the reminders you want to use in your workflow.</p>
+                </div>
+
+                <div class="divide-y" style="border-color:var(--line)">
+                  <label class="flex cursor-pointer items-center justify-between gap-5 py-5">
+                    <div>
+                      <p class="font-bold">Trade journal reminders</p>
+                      <p class="mt-1 text-sm" style="color:var(--muted)">Remind you to document each completed trade.</p>
+                    </div>
+                    <input id="tradeReminders" class="toggle" type="checkbox"/>
+                  </label>
+
+                  <label class="flex cursor-pointer items-center justify-between gap-5 py-5">
+                    <div>
+                      <p class="font-bold">Weekly performance summary</p>
+                      <p class="mt-1 text-sm" style="color:var(--muted)">Prepare a weekly performance and psychology review.</p>
+                    </div>
+                    <input id="weeklySummary" class="toggle" type="checkbox"/>
+                  </label>
+
+                  <label class="flex cursor-pointer items-center justify-between gap-5 py-5">
+                    <div>
+                      <p class="font-bold">Email notifications</p>
+                      <p class="mt-1 text-sm" style="color:var(--muted)">Preference is saved now; email delivery will be added with authentication.</p>
+                    </div>
+                    <input id="emailNotifications" class="toggle" type="checkbox"/>
+                  </label>
+                </div>
+              </section>
+            </div>
+
+
+            <div id="panel-security" class="tab-panel space-y-5">
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 class="text-xl font-extrabold">Change Password</h2>
+                    <p class="mt-1 text-sm" style="color:var(--muted)">
+                      Replace your exposed or old password and invalidate every older login session.
+                    </p>
+                  </div>
+                  <span class="rounded-full border px-3 py-1.5 text-xs font-extrabold"
+                        style="border-color:color-mix(in srgb,var(--green) 35%,var(--line));background:color-mix(in srgb,var(--green) 10%,transparent);color:var(--green)">
+                    Secure update
+                  </span>
+                </div>
+
+                <div id="passwordErrorBox" class="mb-5 hidden items-start gap-3 rounded-2xl border p-4 text-sm"
+                     style="border-color:color-mix(in srgb,var(--red) 45%,var(--line));background:color-mix(in srgb,var(--red) 9%,transparent);color:var(--red)">
+                  <span class="material-symbols-outlined">error</span>
+                  <span id="passwordErrorText">Password could not be changed.</span>
+                </div>
+
+                <div class="grid gap-5">
+                  <label>
+                    <span class="label">Current Password</span>
+                    <div class="relative">
+                      <input id="currentPassword" class="field pr-12" type="password"
+                             autocomplete="current-password" placeholder="Enter your current password"/>
+                      <button class="password-visibility absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5"
+                              style="color:var(--muted)" type="button" data-target="currentPassword"
+                              aria-label="Show current password">
+                        <span class="material-symbols-outlined text-[21px]">visibility</span>
+                      </button>
+                    </div>
+                  </label>
+
+                  <div class="grid gap-5 md:grid-cols-2">
+                    <label>
+                      <span class="label">New Password</span>
+                      <div class="relative">
+                        <input id="newPassword" class="field pr-12" type="password"
+                               autocomplete="new-password" placeholder="Create a strong password"/>
+                        <button class="password-visibility absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5"
+                                style="color:var(--muted)" type="button" data-target="newPassword"
+                                aria-label="Show new password">
+                          <span class="material-symbols-outlined text-[21px]">visibility</span>
+                        </button>
+                      </div>
+                    </label>
+
+                    <label>
+                      <span class="label">Confirm New Password</span>
+                      <div class="relative">
+                        <input id="confirmNewPassword" class="field pr-12" type="password"
+                               autocomplete="new-password" placeholder="Repeat the new password"/>
+                        <button class="password-visibility absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5"
+                                style="color:var(--muted)" type="button" data-target="confirmNewPassword"
+                                aria-label="Show confirmed password">
+                          <span class="material-symbols-outlined text-[21px]">visibility</span>
+                        </button>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="panel-soft mt-6 rounded-2xl p-5">
+                  <div class="flex items-center justify-between gap-4">
+                    <p class="font-extrabold">Password strength</p>
+                    <p id="passwordStrengthLabel" class="text-xs font-extrabold" style="color:var(--muted)">Not entered</p>
+                  </div>
+
+                  <div class="mt-3 grid grid-cols-4 gap-2">
+                    <div class="security-strength-bar h-1.5 rounded-full" style="background:var(--panel-3)"></div>
+                    <div class="security-strength-bar h-1.5 rounded-full" style="background:var(--panel-3)"></div>
+                    <div class="security-strength-bar h-1.5 rounded-full" style="background:var(--panel-3)"></div>
+                    <div class="security-strength-bar h-1.5 rounded-full" style="background:var(--panel-3)"></div>
+                  </div>
+
+                  <div class="mt-5 grid gap-2 text-xs md:grid-cols-2" style="color:var(--muted)">
+                    <p id="passwordRuleLength">○ At least 8 characters</p>
+                    <p id="passwordRuleUpper">○ One uppercase letter</p>
+                    <p id="passwordRuleLower">○ One lowercase letter</p>
+                    <p id="passwordRuleNumber">○ One number</p>
+                    <p id="passwordRuleSymbol">○ One special character</p>
+                    <p id="passwordRuleMatch">○ Confirmation matches</p>
+                  </div>
+                </div>
+
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex items-start gap-3 text-sm" style="color:var(--muted)">
+                    <span class="material-symbols-outlined mt-0.5" style="color:var(--amber)">devices</span>
+                    <p class="leading-6">
+                      After changing the password, every older JWT session will stop working.
+                      This browser receives a fresh secure token automatically.
+                    </p>
+                  </div>
+
+                  <button id="changePasswordBtn" class="primary-btn min-w-[190px] rounded-xl px-5 py-3 font-extrabold"
+                          type="button">
+                    Change Password
+                  </button>
+                </div>
+              </section>
+
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="flex items-start gap-4">
+                  <span class="material-symbols-outlined mt-0.5" style="color:var(--primary)">verified_user</span>
+                  <div>
+                    <h3 class="font-extrabold">Session protection</h3>
+                    <p class="mt-1 text-sm leading-6" style="color:var(--muted)">
+                      Passwords are stored as bcrypt hashes. The server never returns your password,
+                      and changing it invalidates tokens created with the previous session version.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div id="panel-system" class="tab-panel space-y-5">
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-6">
+                  <h2 class="text-xl font-extrabold">System Health</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">Live connection status for the deployed ProTrade services.</p>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div class="panel-soft rounded-2xl p-5">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="font-bold">Render Backend</p>
+                        <p class="mt-1 text-sm" style="color:var(--muted)">API server and health route</p>
+                      </div>
+                      <span id="backendBadge" class="rounded-full px-3 py-1 text-xs font-bold" style="background:var(--panel-3);color:var(--muted)">Checking</span>
+                    </div>
+                  </div>
+
+                  <div class="panel-soft rounded-2xl p-5">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="font-bold">MongoDB Settings</p>
+                        <p class="mt-1 text-sm" style="color:var(--muted)">Persistent settings document</p>
+                      </div>
+                      <span id="databaseBadge" class="rounded-full px-3 py-1 text-xs font-bold" style="background:var(--panel-3);color:var(--muted)">Checking</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel-soft mt-5 rounded-2xl p-5">
+                  <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">API Base URL</p>
+                      <p class="mt-2 break-all text-sm font-bold">protrader-backend-n8oj.onrender.com</p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">Last Loaded</p>
+                      <p id="lastLoadedText" class="mt-2 text-sm font-bold">—</p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-extrabold uppercase tracking-wider" style="color:var(--muted)">Last Saved</p>
+                      <p id="lastSavedText" class="mt-2 text-sm font-bold">Not saved this session</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel rounded-2xl p-6 lg:p-7">
+                <div class="mb-5">
+                  <h2 class="text-xl font-extrabold">Data Management</h2>
+                  <p class="mt-1 text-sm" style="color:var(--muted)">Export or reset this workspace's settings.</p>
+                </div>
+
+                <div class="flex flex-col gap-3 sm:flex-row">
+                  <button id="exportBtn" class="secondary-btn rounded-xl px-4 py-3 font-bold" type="button">
+                    <span class="material-symbols-outlined mr-2">download</span>Export Settings JSON
+                  </button>
+                  <button id="resetBtn" class="danger-btn rounded-xl px-4 py-3 font-bold" type="button">
+                    <span class="material-symbols-outlined mr-2">restart_alt</span>Reset to Defaults
+                  </button>
+                </div>
+              </section>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <div id="unsavedBar" class="pointer-events-none fixed bottom-5 left-1/2 z-50 hidden w-[calc(100%-32px)] max-w-2xl -translate-x-1/2 md:left-[calc(50%+140px)]">
+      <div class="save-bar pointer-events-auto flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined" style="color:var(--amber)">edit_note</span>
+          <div>
+            <p class="font-bold">You have unsaved changes</p>
+            <p class="text-xs" style="color:var(--muted)">Save now to sync them with MongoDB.</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="discardBtn" class="secondary-btn rounded-xl px-4 py-2 text-sm font-bold" type="button">Discard</button>
+          <button id="floatingSaveBtn" class="primary-btn rounded-xl px-4 py-2 text-sm font-extrabold" type="button">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast">
+    <div class="flex items-start gap-3">
+      <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+      <div>
+        <p id="toastTitle" class="font-extrabold">Saved</p>
+        <p id="toastMessage" class="mt-1 text-sm" style="color:var(--muted)">Settings updated.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const API_BASE = "https://protrader-backend-n8oj.onrender.com/api";
+      const SETTINGS_API = `${API_BASE}/settings`;
+      const HEALTH_API = `${API_BASE}/health`;
+      const CHANGE_PASSWORD_API = `${API_BASE}/auth/change-password`;
+
+      const fieldIds = [
+        "fullName", "email", "timezone", "tradingRole", "currency",
+        "startingBalance", "targetBalance", "riskPerTrade", "maxDailyLoss",
+        "maxTradesPerDay", "defaultRR", "preferredSession", "theme",
+        "dateFormat", "tradeReminders", "weeklySummary", "emailNotifications"
+      ];
+
+      const $ = (id) => document.getElementById(id);
+      let savedSnapshot = null;
+      let isDirty = false;
+      let toastTimer = null;
+
+      const currencySymbols = {
+        USD: "$",
+        INR: "₹",
+        EUR: "€",
+        GBP: "£",
+        JPY: "¥"
+      };
+
+      function formatCurrency(value, currency) {
+        return new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: currency || "USD",
+          maximumFractionDigits: 2
+        }).format(Number(value || 0));
+      }
+
+      function showToast(type, title, message) {
+        const toast = $("toast");
+        clearTimeout(toastTimer);
+        toast.className = `toast ${type}`;
+        $("toastIcon").textContent = type === "error" ? "error" : "check_circle";
+        $("toastIcon").style.color = type === "error" ? "var(--red)" : "var(--green)";
+        $("toastTitle").textContent = title;
+        $("toastMessage").textContent = message;
+        requestAnimationFrame(() => toast.classList.add("show"));
+        toastTimer = setTimeout(() => toast.classList.remove("show"), 4200);
+      }
+
+      async function request(url, options = {}) {
+        const response = await fetch(url, options);
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok || body.success === false) {
+          throw new Error(body.message || `Request failed (${response.status})`);
+        }
+
+        return body;
+      }
+
+      function applyTheme(theme) {
+        let actual = theme;
+        if (theme === "System") {
+          actual = window.matchMedia("(prefers-color-scheme: light)").matches ? "Light" : "Dark";
+        }
+        document.documentElement.dataset.theme = actual.toLowerCase();
+      }
+
+      function initials(name) {
+        const parts = String(name || "G").trim().split(/\s+/).filter(Boolean);
+        return parts.slice(0, 2).map(part => part[0]).join("").toUpperCase() || "G";
+      }
+
+      function setValue(id, value) {
+        const element = $(id);
+        if (!element) return;
+
+        if (element.type === "checkbox") {
+          element.checked = Boolean(value);
+        } else if (value !== undefined && value !== null) {
+          element.value = value;
+        }
+      }
+
+      function collectSettings() {
+        return {
+          fullName: $("fullName").value.trim(),
+          email: $("email").value.trim(),
+          timezone: $("timezone").value,
+          tradingRole: $("tradingRole").value.trim(),
+          currency: $("currency").value,
+          startingBalance: Number($("startingBalance").value),
+          targetBalance: Number($("targetBalance").value),
+          riskPerTrade: Number($("riskPerTrade").value),
+          maxDailyLoss: Number($("maxDailyLoss").value),
+          maxTradesPerDay: Number($("maxTradesPerDay").value),
+          defaultRR: Number($("defaultRR").value),
+          preferredSession: $("preferredSession").value,
+          theme: $("theme").value,
+          dateFormat: $("dateFormat").value,
+          tradeReminders: $("tradeReminders").checked,
+          weeklySummary: $("weeklySummary").checked,
+          emailNotifications: $("emailNotifications").checked
+        };
+      }
+
+      function fillSettings(data) {
+        fieldIds.forEach(id => setValue(id, data[id]));
+        applyTheme(data.theme || "Dark");
+        updateLivePreview();
+      }
+
+      function updateLivePreview() {
+        const data = collectSettings();
+        const name = data.fullName || "Gautam";
+        const role = data.tradingRole || "Independent Trader";
+        const avatarText = initials(name);
+
+        $("sidebarProfileName").textContent = name;
+        $("heroName").textContent = name;
+        $("heroRole").textContent = role;
+        $("avatarSmall").textContent = avatarText;
+        $("avatarLarge").textContent = avatarText;
+
+        $("summaryStartingBalance").textContent = formatCurrency(data.startingBalance, data.currency);
+        $("summaryTargetBalance").textContent = formatCurrency(data.targetBalance, data.currency);
+        $("summaryRisk").textContent = `${Number(data.riskPerTrade || 0).toFixed(1)}%`;
+        $("summaryDailyLoss").textContent = `${Number(data.maxDailyLoss || 0).toFixed(1)}%`;
+
+        const starting = Number(data.startingBalance || 0);
+        const target = Number(data.targetBalance || 0);
+        const progress = target > 0 ? Math.max(0, Math.min(100, (starting / target) * 100)) : 0;
+        $("goalProgressFill").style.width = `${progress}%`;
+        $("goalProgressPercent").textContent = `${progress.toFixed(1)}%`;
+        $("goalProgressLabel").textContent = `${formatCurrency(starting, data.currency)} of ${formatCurrency(target, data.currency)}`;
+
+        const risk = Number(data.riskPerTrade || 0);
+        const dailyLoss = Number(data.maxDailyLoss || 0);
+        const card = $("riskWarningCard");
+        const icon = card.querySelector(".material-symbols-outlined");
+
+        if (risk > 2 || dailyLoss > 5) {
+          $("riskWarningTitle").textContent = "Review your risk limits";
+          $("riskWarningText").textContent = "Your current limits are aggressive. Consider reducing risk per trade or the maximum daily loss.";
+          icon.textContent = "warning";
+          icon.style.color = "var(--amber)";
+        } else {
+          $("riskWarningTitle").textContent = "Risk rules look controlled";
+          $("riskWarningText").textContent = "Your selected limits are within a reasonable professional range.";
+          icon.textContent = "verified_user";
+          icon.style.color = "var(--green)";
+        }
+      }
+
+      function setDirty(value) {
+        isDirty = value;
+        $("unsavedBar").classList.toggle("hidden", !value);
+      }
+
+      function compareWithSnapshot() {
+        const current = JSON.stringify(collectSettings());
+        setDirty(savedSnapshot !== null && current !== savedSnapshot);
+      }
+
+      function setSyncStatus(online, text) {
+        $("syncDot").classList.toggle("online", online);
+        $("syncText").textContent = text;
+        $("syncText").style.color = online ? "var(--green)" : "var(--muted)";
+      }
+
+      async function checkSystemHealth() {
+        try {
+          await request(HEALTH_API);
+          setSyncStatus(true, "API Online");
+          $("backendBadge").textContent = "Online";
+          $("backendBadge").style.background = "color-mix(in srgb, var(--green) 14%, transparent)";
+          $("backendBadge").style.color = "var(--green)";
+        } catch (error) {
+          setSyncStatus(false, "API Offline");
+          $("backendBadge").textContent = "Offline";
+          $("backendBadge").style.background = "color-mix(in srgb, var(--red) 12%, transparent)";
+          $("backendBadge").style.color = "var(--red)";
+        }
+      }
+
+      async function loadSettings() {
+        try {
+          setSyncStatus(false, "Loading");
+          const response = await request(SETTINGS_API);
+          const settings = response.data || {};
+
+          fillSettings(settings);
+          savedSnapshot = JSON.stringify(collectSettings());
+          setDirty(false);
+
+          $("loadingView").classList.add("hidden");
+          $("settingsForm").classList.remove("hidden");
+          $("lastLoadedText").textContent = new Date().toLocaleString("en-IN");
+          $("databaseBadge").textContent = "Connected";
+          $("databaseBadge").style.background = "color-mix(in srgb, var(--green) 14%, transparent)";
+          $("databaseBadge").style.color = "var(--green)";
+          setSyncStatus(true, "Synced");
+        } catch (error) {
+          $("loadingView").innerHTML = `
+            <div class="panel rounded-2xl p-8 text-center">
+              <span class="material-symbols-outlined text-5xl" style="color:var(--red)">cloud_off</span>
+              <h2 class="mt-4 text-xl font-extrabold">Could not load settings</h2>
+              <p class="mt-2 text-sm" style="color:var(--muted)">${escapeHtml(error.message)}</p>
+              <button id="retryBtn" class="primary-btn mt-5 rounded-xl px-5 py-3 font-extrabold">Try Again</button>
+            </div>`;
+          $("retryBtn").addEventListener("click", () => location.reload());
+          setSyncStatus(false, "Load Failed");
+          $("databaseBadge").textContent = "Unavailable";
+          $("databaseBadge").style.color = "var(--red)";
+          showToast("error", "Settings unavailable", error.message);
+        }
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function validateSettings(data) {
+        if (!data.fullName) return "Full name is required.";
+        if (data.startingBalance < 0 || data.targetBalance < 0) return "Balance values cannot be negative.";
+        if (data.targetBalance && data.targetBalance < data.startingBalance) return "Target balance should be greater than or equal to starting balance.";
+        if (data.riskPerTrade < 0 || data.riskPerTrade > 100) return "Risk per trade must be between 0 and 100.";
+        if (data.maxDailyLoss < 0 || data.maxDailyLoss > 100) return "Maximum daily loss must be between 0 and 100.";
+        if (data.maxTradesPerDay < 1) return "Maximum trades per day must be at least 1.";
+        return null;
+      }
+
+      async function saveSettings() {
+        const payload = collectSettings();
+        const validationError = validateSettings(payload);
+
+        if (validationError) {
+          showToast("error", "Check your settings", validationError);
+          return;
+        }
+
+        const saveButtons = [$("headerSaveBtn"), $("floatingSaveBtn")];
+        saveButtons.forEach(button => {
+          button.disabled = true;
+          button.dataset.label = button.textContent;
+          button.textContent = "Saving…";
+        });
+
+        try {
+          setSyncStatus(false, "Saving");
+          const response = await request(SETTINGS_API, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          fillSettings(response.data || payload);
+          savedSnapshot = JSON.stringify(collectSettings());
+          setDirty(false);
+          $("lastSavedText").textContent = new Date().toLocaleString("en-IN");
+          setSyncStatus(true, "Synced");
+          showToast("success", "Settings saved", "Your profile, trading rules and Dashboard values are now synced.");
+        } catch (error) {
+          setSyncStatus(false, "Save Failed");
+          showToast("error", "Could not save settings", error.message);
+        } finally {
+          saveButtons.forEach(button => {
+            button.disabled = false;
+            button.textContent = button.dataset.label || "Save Changes";
+          });
+        }
+      }
+
+      async function resetSettings() {
+        if (!confirm("Reset all settings to default values? This cannot be undone.")) return;
+
+        try {
+          setSyncStatus(false, "Resetting");
+          const response = await request(`${SETTINGS_API}/reset`, { method: "POST" });
+          fillSettings(response.data || {});
+          savedSnapshot = JSON.stringify(collectSettings());
+          setDirty(false);
+          $("lastSavedText").textContent = new Date().toLocaleString("en-IN");
+          setSyncStatus(true, "Synced");
+          showToast("success", "Settings reset", "Default workspace settings have been restored.");
+        } catch (error) {
+          setSyncStatus(false, "Reset Failed");
+          showToast("error", "Reset failed", error.message);
+        }
+      }
+
+      function exportSettings() {
+        const blob = new Blob([JSON.stringify(collectSettings(), null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = `protrade-settings-${new Date().toISOString().slice(0,10)}.json`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        showToast("success", "Settings exported", "Your current settings were downloaded as JSON.");
+      }
+
+
+      function showPasswordError(message) {
+        $("passwordErrorText").textContent = message;
+        $("passwordErrorBox").classList.remove("hidden");
+        $("passwordErrorBox").classList.add("flex");
+      }
+
+      function clearPasswordError() {
+        $("passwordErrorBox").classList.add("hidden");
+        $("passwordErrorBox").classList.remove("flex");
+      }
+
+      function passwordChecks() {
+        const password = $("newPassword").value;
+        const confirmation = $("confirmNewPassword").value;
+
+        return [
+          { id: "passwordRuleLength", pass: password.length >= 8 },
+          { id: "passwordRuleUpper", pass: /[A-Z]/.test(password) },
+          { id: "passwordRuleLower", pass: /[a-z]/.test(password) },
+          { id: "passwordRuleNumber", pass: /\d/.test(password) },
+          { id: "passwordRuleSymbol", pass: /[^A-Za-z0-9]/.test(password) },
+          {
+            id: "passwordRuleMatch",
+            pass: Boolean(password) && password === confirmation,
+          },
+        ];
+      }
+
+      function updatePasswordStrength() {
+        const password = $("newPassword").value;
+        const checks = passwordChecks();
+        const strengthChecks = checks.slice(0, 5);
+        const score = strengthChecks.filter((item) => item.pass).length;
+
+        const label =
+          !password ? "Not entered" :
+          score <= 2 ? "Weak" :
+          score === 3 ? "Fair" :
+          score === 4 ? "Good" : "Strong";
+
+        const strengthColor =
+          !password ? "var(--muted)" :
+          score <= 2 ? "var(--red)" :
+          score === 3 ? "var(--amber)" :
+          score === 4 ? "var(--primary)" : "var(--green)";
+
+        $("passwordStrengthLabel").textContent = label;
+        $("passwordStrengthLabel").style.color = strengthColor;
+
+        document.querySelectorAll(".security-strength-bar").forEach(
+          (bar, index) => {
+            bar.style.background =
+              index < Math.min(score, 4)
+                ? strengthColor
+                : "var(--panel-3)";
+          }
+        );
+
+        checks.forEach((check) => {
+          const element = $(check.id);
+          element.textContent =
+            `${check.pass ? "✓" : "○"} ` +
+            element.textContent.replace(/^[✓○]\s*/, "");
+          element.style.color = check.pass
+            ? "var(--green)"
+            : "var(--muted)";
+        });
+      }
+
+      async function changePassword() {
+        clearPasswordError();
+
+        const currentPassword = $("currentPassword").value;
+        const newPassword = $("newPassword").value;
+        const confirmPassword = $("confirmNewPassword").value;
+        const checks = passwordChecks();
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+          showPasswordError("Complete all three password fields.");
+          return;
+        }
+
+        if (checks.slice(0, 5).some((item) => !item.pass)) {
+          showPasswordError(
+            "The new password must satisfy every strength requirement."
+          );
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          showPasswordError("New password and confirmation do not match.");
+          return;
+        }
+
+        const button = $("changePasswordBtn");
+        button.disabled = true;
+        button.dataset.label = button.textContent;
+        button.textContent = "Changing…";
+
+        try {
+          const response = await fetch(CHANGE_PASSWORD_API, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              currentPassword,
+              newPassword,
+              confirmPassword,
+            }),
+          });
+
+          const body = await response.json().catch(() => ({}));
+
+          if (!response.ok || body.success === false) {
+            throw new Error(body.message || "Password change failed.");
+          }
+
+          if (!body.token) {
+            throw new Error("The server did not return a new session token.");
+          }
+
+          sessionStorage.setItem(
+            window.ProTradeAuth?.TOKEN_KEY || "protrade_auth_token",
+            body.token
+          );
+
+          if (body.data) {
+            sessionStorage.setItem(
+              window.ProTradeAuth?.USER_KEY || "protrade_auth_user",
+              JSON.stringify(body.data)
+            );
+          }
+
+          $("currentPassword").value = "";
+          $("newPassword").value = "";
+          $("confirmNewPassword").value = "";
+          updatePasswordStrength();
+
+          showToast(
+            "success",
+            "Password changed",
+            "Your new password is active and older login sessions are now invalid."
+          );
+        } catch (error) {
+          showPasswordError(error.message);
+        } finally {
+          button.disabled = false;
+          button.textContent =
+            button.dataset.label || "Change Password";
+        }
+      }
+
+      function switchTab(tabName) {
+        document.querySelectorAll(".tab-button").forEach(button => {
+          button.classList.toggle("active", button.dataset.tab === tabName);
+        });
+
+        document.querySelectorAll(".tab-panel").forEach(panel => {
+          panel.classList.toggle("active", panel.id === `panel-${tabName}`);
+        });
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      document.querySelectorAll(".tab-button").forEach(button => {
+        button.addEventListener("click", () => switchTab(button.dataset.tab));
+      });
+
+      fieldIds.forEach(id => {
+        const element = $(id);
+        const eventName = element?.type === "checkbox" || element?.tagName === "SELECT" ? "change" : "input";
+
+        element?.addEventListener(eventName, () => {
+          if (id === "theme") applyTheme(element.value);
+          updateLivePreview();
+          compareWithSnapshot();
+        });
+      });
+
+
+      document.querySelectorAll(".password-visibility").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = $(button.dataset.target);
+          const isVisible = input.type === "text";
+          input.type = isVisible ? "password" : "text";
+          button.querySelector("span").textContent =
+            isVisible ? "visibility" : "visibility_off";
+        });
+      });
+
+      $("newPassword")?.addEventListener("input", updatePasswordStrength);
+      $("confirmNewPassword")?.addEventListener(
+        "input",
+        updatePasswordStrength
+      );
+      $("changePasswordBtn")?.addEventListener(
+        "click",
+        changePassword
+      );
+
+      $("headerSaveBtn").addEventListener("click", saveSettings);
+      $("floatingSaveBtn").addEventListener("click", saveSettings);
+      $("discardBtn").addEventListener("click", () => {
+        if (!savedSnapshot) return;
+        fillSettings(JSON.parse(savedSnapshot));
+        setDirty(false);
+        showToast("success", "Changes discarded", "The last saved settings were restored.");
+      });
+      $("resetBtn").addEventListener("click", resetSettings);
+      $("exportBtn").addEventListener("click", exportSettings);
+
+      window.addEventListener("beforeunload", event => {
+        if (!isDirty) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
+
+      checkSystemHealth();
+      loadSettings();
+    })();
+  </script>
+</body>
+</html>

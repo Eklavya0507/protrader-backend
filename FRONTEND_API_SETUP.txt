@@ -1,0 +1,27 @@
+ProTrade Frontend – Live API Integration
+
+Live API:
+https://protrader-backend-n8oj.onrender.com/api/trades
+
+Updated page:
+trades.html
+
+Included features:
+- Loads trades from MongoDB through Render API
+- Adds new trades with POST
+- Edits trades with PUT
+- Deletes trades with DELETE
+- Dynamic P&L statistics
+- Search and filters
+- Loading, success, and error messages
+- localStorage removed from trades.html
+
+How to test:
+1. Extract this ZIP.
+2. Open the folder in VS Code.
+3. Use the Live Server extension and open trades.html.
+4. Wait up to 50–60 seconds the first time because the free Render service may be sleeping.
+5. Test Add Trade, Edit Trade, and Delete.
+
+Security note:
+The backend API is currently public. Authentication and user-specific trade ownership should be added before a public launch.

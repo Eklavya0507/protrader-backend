@@ -1,0 +1,17 @@
+PROTRADE FRONTEND USER-DATA UPDATE
+
+This package updates auth.js so every API request made by the protected pages
+automatically includes:
+
+Authorization: Bearer <logged-in user's JWT>
+
+Updated behavior:
+- Dashboard loads only the logged-in user's trades and settings.
+- Trades page loads only the logged-in user's trades.
+- Calendar, Analytics and Psychology use only that user's trade data.
+- AI Journal loads only that user's journals/trades.
+- Settings loads only that user's settings.
+- 401 responses sign the user out and redirect to login.
+
+Upload the complete contents of protrader-main to the frontend GitHub repository.
+Do not delete the repository first; replace same-name files.

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <script src="auth.js"></script>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Psychology | ProTrade Analytics</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #101415; }
+    ::-webkit-scrollbar-thumb { background: #323537; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #45464d; }
+    .glass-header { backdrop-filter: blur(12px); background: rgba(29, 32, 34, 0.92); }
+    input[type="range"] { accent-color: #adc6ff; }
+    .chart-container { position: relative; width: 100%; height: 300px; }
+    .pulse-dot { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  </style>
+  <script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"on-secondary-fixed-variant": "#004395", "on-error": "#690005", "secondary-container": "#0566d9", background: "#101415", "on-tertiary-container": "#009365", "primary-fixed": "#dae2fd", "on-background": "#e0e3e5", "on-primary-container": "#798098", "tertiary-container": "#001c10", secondary: "#adc6ff", "inverse-primary": "#565e74", "surface-variant": "#323537", "inverse-on-surface": "#2d3133", "tertiary-fixed-dim": "#4edea3", "primary-container": "#0f172a", surface: "#101415", primary: "#bec6e0", "inverse-surface": "#e0e3e5", "surface-container-lowest": "#0b0f10", "on-primary": "#283044", "error-container": "#93000a", "surface-container": "#1d2022", "on-tertiary-fixed": "#002113", outline: "#909097", "on-secondary-fixed": "#001a42", "on-error-container": "#ffdad6", "on-tertiary-fixed-variant": "#005236", "surface-dim": "#101415", "on-surface-variant": "#c6c6cd", "tertiary-fixed": "#6ffbbe", "surface-container-high": "#272a2c", "surface-tint": "#bec6e0", error: "#ffb4ab", "surface-bright": "#363a3b", "primary-fixed-dim": "#bec6e0", "secondary-fixed": "#d8e2ff", "on-surface": "#e0e3e5", "surface-container-highest": "#323537", tertiary: "#4edea3", "on-tertiary": "#003824", "outline-variant": "#45464d", "on-secondary": "#002e6a", "on-primary-fixed": "#131b2e", "on-secondary-container": "#e6ecff", "surface-container-low": "#191c1e", "on-primary-fixed-variant": "#3f465c", "secondary-fixed-dim": "#adc6ff"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px"}, spacing: {"container-padding": "2rem", "unit-xl": "2.5rem", "unit-sm": "0.5rem", gutter: "1.5rem", "unit-lg": "1.5rem", "unit-xs": "0.25rem", "unit-md": "1rem", "sidebar-width": "280px"}, fontFamily: {"display-lg": ["DM Sans"], "label-uppercase": ["DM Sans"], "body-lg": ["DM Sans"], "headline-lg": ["DM Sans"], "title-md": ["DM Sans"], "headline-lg-mobile": ["DM Sans"], "data-mono": ["DM Sans"], "body-sm": ["DM Sans"], headline: ["DM Sans"], display: ["DM Sans"], body: ["DM Sans"], label: ["DM Sans"]}, fontSize: {"display-lg": ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], "label-uppercase": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "700"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], "headline-lg": ["32px", {lineHeight: "1.2", letterSpacing: "-0.01em", fontWeight: "700"}], "title-md": ["20px", {lineHeight: "1.4", fontWeight: "600"}], "headline-lg-mobile": ["24px", {lineHeight: "1.2", fontWeight: "700"}], "data-mono": ["14px", {lineHeight: "1", letterSpacing: "-0.01em", fontWeight: "500"}], "body-sm": ["14px", {lineHeight: "1.5", fontWeight: "400"}]}}}};</script>
+</head>
+<body class="bg-background text-on-background selection:bg-secondary-container selection:text-on-secondary-container min-h-screen pb-16 md:pb-0">
+  <aside class="fixed left-0 top-0 h-full w-[280px] z-50 bg-surface-container-low border-r border-outline-variant flex-col py-6 px-4 hidden md:flex">
+    <div class="mb-10 px-2">
+      <a href="index.html" class="block"><h1 class="text-[32px] leading-tight font-black text-primary tracking-tight">ProTrade</h1><p class="text-[12px] uppercase tracking-[.05em] font-bold text-on-surface-variant opacity-70">Institutional Grade</p></a>
+    </div>
+    <nav class="flex-1 space-y-1">
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span>Trades</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span>Calendar</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all" href="analytics.html"><span class="material-symbols-outlined">analytics</span><span>Analytics</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg font-semibold shadow-sm" href="psychology.html"><span class="material-symbols-outlined">psychology</span><span>Psychology</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all" href="ai-journal.html"><span class="material-symbols-outlined">smart_toy</span><span>AI Journal</span></a>
+      <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all" href="settings.html"><span class="material-symbols-outlined">settings</span><span>Settings</span></a>
+    </nav>
+    <div class="mt-auto space-y-6">
+      <a href="dashboard.html" class="w-full py-4 px-6 bg-tertiary text-on-tertiary rounded-xl font-bold hover:opacity-90 flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[20px]">workspace_premium</span>Upgrade to Pro</a>
+      <div class="flex items-center gap-4 p-2 border-t border-outline-variant pt-6"><div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center"><span class="material-symbols-outlined text-primary">account_circle</span></div><div><p class="text-sm font-bold"><span class="auth-user-name">Alex Rivera</span></p><p class="text-[10px] text-tertiary flex items-center gap-1"><span class="material-symbols-outlined text-[12px]" style="font-variation-settings:'FILL' 1">verified</span>PRO MEMBER</p></div></div>
+    </div>
+  
+<button data-auth-logout type="button" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60">
+  <span class="material-symbols-outlined text-[20px]">logout</span>
+  Logout
+</button>
+
+</aside>
+
+  <main class="md:ml-[280px] min-h-screen">
+    <header class="sticky top-0 z-40 glass-header border-b border-outline-variant shadow-sm">
+      <div class="flex justify-between items-center px-6 h-16 max-w-[1600px] mx-auto">
+        <div class="flex items-center gap-4 flex-1"><a href="index.html" class="md:hidden text-xl font-bold text-primary">ProTrade</a><div class="relative hidden sm:block"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span><input id="searchInput" class="bg-surface-container-low border border-outline-variant rounded-full py-1.5 pl-10 pr-4 w-72 focus:ring-1 focus:ring-primary focus:outline-none text-sm text-on-surface" placeholder="Search mistake, symbol or note..." type="search"/></div></div>
+        <div class="flex items-center gap-3"><button id="refreshBtn" class="p-2 text-on-surface-variant hover:bg-surface-bright rounded-full" title="Refresh live data"><span class="material-symbols-outlined">refresh</span></button><a href="trades.html" class="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:opacity-80"><span class="material-symbols-outlined text-[20px]">add</span><span class="hidden sm:inline">Add Trade</span></a></div>
+      </div>
+    </header>
+
+    <div class="p-6 lg:p-10 max-w-[1600px] mx-auto space-y-7">
+      <div id="loadingBanner" class="rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 flex items-center gap-3 text-secondary"><span class="w-2.5 h-2.5 rounded-full bg-secondary pulse-dot"></span><span>Loading live psychology analytics from MongoDB…</span></div>
+      <div id="errorBanner" class="hidden rounded-xl border border-error/40 bg-error/10 px-4 py-3 text-error"></div>
+
+      <section class="flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+        <div><p class="text-tertiary text-sm font-bold tracking-wide mb-2">LIVE BEHAVIOR ANALYTICS</p><h2 class="text-3xl lg:text-4xl font-bold">Psychological Performance</h2><p class="text-on-surface-variant mt-2">Discipline, execution quality and recurring behavior patterns calculated from your verified trades.</p></div>
+        <div class="flex flex-wrap items-center gap-2"><button class="range-btn px-4 py-2 rounded-lg bg-surface-container-high text-on-surface-variant font-bold text-sm" data-range="7D">7D</button><button class="range-btn px-4 py-2 rounded-lg bg-surface-container-high text-on-surface-variant font-bold text-sm" data-range="30D">30D</button><button class="range-btn px-4 py-2 rounded-lg bg-secondary text-on-secondary font-bold text-sm" data-range="ALL">ALL</button><button id="exportBtn" class="px-4 py-2 rounded-lg border border-outline-variant font-bold text-sm flex items-center gap-2 hover:bg-surface-container-high"><span class="material-symbols-outlined text-[18px]">download</span>Export</button></div>
+      </section>
+
+      <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <article class="bg-surface-container rounded-2xl p-5 border border-outline-variant"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Readiness Score</p><div class="flex items-end justify-between mt-3"><p id="readinessScore" class="text-3xl font-black text-tertiary">—</p><span class="material-symbols-outlined text-tertiary">verified_user</span></div><p id="readinessLabel" class="text-sm text-on-surface-variant mt-2">Waiting for trade data</p></article>
+        <article class="bg-surface-container rounded-2xl p-5 border border-outline-variant"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Discipline</p><div class="flex items-end justify-between mt-3"><p id="disciplineScore" class="text-3xl font-black text-secondary">—</p><span class="material-symbols-outlined text-secondary">rule</span></div><p class="text-sm text-on-surface-variant mt-2">Checklist + mistake control</p></article>
+        <article class="bg-surface-container rounded-2xl p-5 border border-outline-variant"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Execution Rating</p><div class="flex items-end justify-between mt-3"><p id="executionRating" class="text-3xl font-black text-primary">—</p><span class="material-symbols-outlined text-primary">stars</span></div><p id="ratedTrades" class="text-sm text-on-surface-variant mt-2">No rated trades yet</p></article>
+        <article class="bg-surface-container rounded-2xl p-5 border border-outline-variant"><p class="text-xs uppercase tracking-wider text-on-surface-variant font-bold">Clean Trade Rate</p><div class="flex items-end justify-between mt-3"><p id="cleanTradeRate" class="text-3xl font-black text-tertiary">—</p><span class="material-symbols-outlined text-tertiary">task_alt</span></div><p id="cleanTradeText" class="text-sm text-on-surface-variant mt-2">No trades analyzed</p></article>
+        <article class="bg-primary-container rounded-2xl p-5 border border-secondary-container/50"><p class="text-xs uppercase tracking-wider text-on-primary-container font-bold">Emotional Risk</p><div class="flex items-end justify-between mt-3"><p id="emotionalRisk" class="text-3xl font-black text-secondary">—</p><span class="material-symbols-outlined text-secondary">monitor_heart</span></div><p id="riskLabel" class="text-sm text-on-primary-container mt-2">Waiting for data</p></article>
+      </section>
+
+      <section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <article class="xl:col-span-4 bg-surface-container rounded-2xl p-6 border border-outline-variant">
+          <div class="flex items-start justify-between gap-4"><div><h3 class="text-xl font-bold">Session Check-in</h3><p class="text-sm text-on-surface-variant mt-1">Quick self-assessment before your next trade.</p></div><span id="checkinScore" class="text-2xl font-black text-secondary">80</span></div>
+          <div class="grid grid-cols-3 gap-3 mt-6">
+            <button data-mood="focused" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl border border-outline-variant hover:border-tertiary"><span class="material-symbols-outlined text-3xl">center_focus_strong</span><span class="text-xs font-bold">Focused</span></button>
+            <button data-mood="calm" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl border border-secondary bg-secondary/10 text-secondary"><span class="material-symbols-outlined text-3xl">self_improvement</span><span class="text-xs font-bold">Calm</span></button>
+            <button data-mood="anxious" class="mood-btn flex flex-col items-center gap-2 p-3 rounded-xl border border-outline-variant hover:border-error"><span class="material-symbols-outlined text-3xl">bolt</span><span class="text-xs font-bold">Anxious</span></button>
+          </div>
+          <p id="moodInsight" class="text-sm text-on-surface-variant italic mt-4">Balanced emotional state. Good for disciplined execution.</p>
+          <div class="space-y-5 mt-6">
+            <div><div class="flex justify-between text-sm mb-2"><label for="confidenceSlider" class="font-bold">Confidence</label><span id="confidenceValue" class="text-secondary font-bold">8/10</span></div><input id="confidenceSlider" class="w-full" min="1" max="10" value="8" type="range"/></div>
+            <div><div class="flex justify-between text-sm mb-2"><label for="disciplineSlider" class="font-bold">Discipline</label><span id="disciplineValue" class="text-tertiary font-bold">9/10</span></div><input id="disciplineSlider" class="w-full" min="1" max="10" value="9" type="range"/></div>
+            <div><div class="flex justify-between text-sm mb-2"><label for="stressSlider" class="font-bold">Stress</label><span id="stressValue" class="text-error font-bold">3/10</span></div><input id="stressSlider" class="w-full" min="1" max="10" value="3" type="range"/></div>
+          </div>
+          <p class="text-xs text-on-surface-variant mt-5 border-t border-outline-variant pt-4">This check-in is interactive only. It is not saved to MongoDB until a dedicated psychology check-in API is added.</p>
+        </article>
+
+        <article class="xl:col-span-8 bg-surface-container rounded-2xl p-6 border border-outline-variant">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h3 class="text-xl font-bold">Behavior Trend</h3><p class="text-sm text-on-surface-variant mt-1">Execution rating and clean-execution score across filtered trades.</p></div><p id="trendSummary" class="text-sm text-on-surface-variant">No trend yet</p></div>
+          <div class="chart-container mt-5"><canvas id="behaviorTrendChart"></canvas></div>
+        </article>
+      </section>
+
+      <section class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <article class="xl:col-span-7 bg-surface-container rounded-2xl p-6 border border-outline-variant">
+          <div class="flex items-center justify-between gap-4"><div><h3 class="text-xl font-bold">Emotional Volatility by Weekday</h3><p class="text-sm text-on-surface-variant mt-1">Risk combines mistakes, losses and low execution ratings.</p></div><div class="text-xs text-on-surface-variant"><span class="inline-block w-2.5 h-2.5 bg-tertiary rounded-sm mr-1"></span>Low <span class="inline-block w-2.5 h-2.5 bg-error rounded-sm ml-3 mr-1"></span>High</div></div>
+          <div id="weekdayHeatmap" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-6"></div>
+          <p id="weekdayInsight" class="text-sm text-on-surface-variant mt-5">Add more trades to identify weekday behavior patterns.</p>
+        </article>
+
+        <article class="xl:col-span-5 bg-surface-container rounded-2xl p-6 border border-outline-variant">
+          <div class="flex items-center justify-between"><div><h3 class="text-xl font-bold">Psychological Slip-ups</h3><p class="text-sm text-on-surface-variant mt-1">Live frequency from mistake tags.</p></div><span id="mistakeTotal" class="text-error font-bold">0 tags</span></div>
+          <div id="mistakeList" class="space-y-3 mt-6"></div>
+          <a href="trades.html" class="mt-5 w-full py-3 border border-dashed border-outline-variant rounded-xl text-on-surface-variant font-bold text-sm hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[18px]">edit_note</span>Tag mistakes inside a trade</a>
+        </article>
+      </section>
+
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <article class="bg-surface-container rounded-2xl p-6 border border-outline-variant"><h3 class="text-lg font-bold">Checklist Discipline</h3><div class="grid grid-cols-2 gap-3 mt-5"><div class="bg-surface-container-low rounded-xl p-4"><p class="text-xs text-on-surface-variant uppercase font-bold">Coverage</p><p id="checklistCoverage" class="text-2xl font-black text-tertiary mt-2">—</p></div><div class="bg-surface-container-low rounded-xl p-4"><p class="text-xs text-on-surface-variant uppercase font-bold">Avg Items</p><p id="avgChecklist" class="text-2xl font-black text-secondary mt-2">—</p></div></div><p id="topChecklist" class="text-sm text-on-surface-variant mt-4">No checklist data yet.</p></article>
+        <article class="bg-surface-container rounded-2xl p-6 border border-outline-variant"><h3 class="text-lg font-bold">Journal Quality</h3><div class="grid grid-cols-2 gap-3 mt-5"><div class="bg-surface-container-low rounded-xl p-4"><p class="text-xs text-on-surface-variant uppercase font-bold">Notes Added</p><p id="journalRate" class="text-2xl font-black text-primary mt-2">—</p></div><div class="bg-surface-container-low rounded-xl p-4"><p class="text-xs text-on-surface-variant uppercase font-bold">Tagged Trades</p><p id="taggedTradeRate" class="text-2xl font-black text-error mt-2">—</p></div></div><p id="journalInsight" class="text-sm text-on-surface-variant mt-4">No journal data yet.</p></article>
+        <article class="bg-primary-container rounded-2xl p-6 border border-secondary-container/50"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-tertiary">auto_awesome</span><h3 class="text-lg font-bold">Performance Insight</h3></div><p id="performanceInsight" class="text-sm text-on-primary-container mt-4 leading-relaxed">Loading behavioral insight…</p><p id="focusArea" class="mt-5 rounded-xl bg-surface-container-lowest/70 border border-outline-variant p-4 text-sm"><strong class="text-secondary">Focus:</strong> Continue recording checklists, notes and honest mistake tags.</p></article>
+      </section>
+
+      <section class="bg-surface-container rounded-2xl border border-outline-variant overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-6 border-b border-outline-variant"><div><h3 class="text-xl font-bold">Recent Psychology Review</h3><p class="text-sm text-on-surface-variant mt-1">The latest filtered executions and their behavior signals.</p></div><span id="reviewCount" class="text-sm text-on-surface-variant">0 trades</span></div>
+        <div class="overflow-x-auto"><table class="w-full min-w-[900px]"><thead class="bg-surface-container-high text-xs uppercase text-on-surface-variant"><tr><th class="px-6 py-4 text-left">Date</th><th class="px-6 py-4 text-left">Symbol</th><th class="px-6 py-4 text-left">Rating</th><th class="px-6 py-4 text-left">Checklist</th><th class="px-6 py-4 text-left">Mistakes</th><th class="px-6 py-4 text-right">P&amp;L</th><th class="px-6 py-4 text-left">Review</th></tr></thead><tbody id="reviewTableBody" class="divide-y divide-outline-variant"></tbody></table></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="fixed bottom-0 left-0 right-0 bg-surface-container border-t border-outline-variant h-16 md:hidden flex items-center justify-around px-4 z-50"><a class="flex flex-col items-center text-on-surface-variant" href="dashboard.html"><span class="material-symbols-outlined">dashboard</span><span class="text-[10px] mt-1">Dashboard</span></a><a class="flex flex-col items-center text-on-surface-variant" href="trades.html"><span class="material-symbols-outlined">receipt_long</span><span class="text-[10px] mt-1">Trades</span></a><a class="flex flex-col items-center text-on-surface-variant" href="calendar.html"><span class="material-symbols-outlined">calendar_month</span><span class="text-[10px] mt-1">Calendar</span></a><a class="flex flex-col items-center text-secondary" href="psychology.html"><span class="material-symbols-outlined">psychology</span><span class="text-[10px] mt-1">Psych</span></a><a class="flex flex-col items-center text-on-surface-variant" href="settings.html"><span class="material-symbols-outlined">account_circle</span><span class="text-[10px] mt-1">Profile</span></a></nav>
+
+  <script>
+    "use strict";
+    const API_URL = "https://protrader-backend-n8oj.onrender.com/api/trades";
+    const $ = id => document.getElementById(id);
+    const state = { allTrades: [], range: "ALL", search: "", mood: "calm" };
+    let behaviorTrendChart = null;
+
+    const escapeHtml = value => String(value ?? "").replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"})[char]);
+    const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const percent = value => `${clamp(value, 0, 100).toFixed(1)}%`;
+    const formatMoney = value => `${value >= 0 ? "+" : "-"}$${Math.abs(number(value)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    function parseTradeDate(trade) {
+      if (!trade?.tradeDate) return null;
+      const raw = String(trade.tradeDate);
+      const date = /^\d{4}-\d{2}-\d{2}/.test(raw) ? new Date(`${raw.slice(0,10)}T12:00:00`) : new Date(raw);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function dateLabel(trade) {
+      const date = parseTradeDate(trade);
+      return date ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Unknown";
+    }
+
+    function getFilteredTrades() {
+      const now = new Date();
+      let trades = [...state.allTrades];
+      if (state.range !== "ALL") {
+        const days = state.range === "7D" ? 7 : 30;
+        const start = new Date(now);
+        start.setHours(0,0,0,0);
+        start.setDate(start.getDate() - (days - 1));
+        trades = trades.filter(t => { const date = parseTradeDate(t); return date && date >= start; });
+      }
+      const query = state.search.trim().toLowerCase();
+      if (query) {
+        trades = trades.filter(t => [t.symbol, t.model, t.session, t.notes, ...(Array.isArray(t.mistakeTags) ? t.mistakeTags : []), ...(Array.isArray(t.checklist) ? t.checklist : [])].filter(Boolean).join(" ").toLowerCase().includes(query));
+      }
+      return trades.sort((a,b) => (parseTradeDate(a)?.getTime() || 0) - (parseTradeDate(b)?.getTime() || 0));
+    }
+
+    function calculateMetrics(trades) {
+      const total = trades.length;
+      const rated = trades.filter(t => number(t.rating) > 0);
+      const avgRating = rated.length ? rated.reduce((sum,t) => sum + clamp(number(t.rating),1,10),0) / rated.length : 0;
+      const mistakeTagged = trades.filter(t => Array.isArray(t.mistakeTags) && t.mistakeTags.filter(Boolean).length > 0);
+      const cleanRate = total ? (total - mistakeTagged.length) / total * 100 : 0;
+      const checklistTrades = trades.filter(t => Array.isArray(t.checklist) && t.checklist.filter(Boolean).length > 0);
+      const checklistCoverage = total ? checklistTrades.length / total * 100 : 0;
+      const noteTrades = trades.filter(t => String(t.notes || "").trim().length > 0);
+      const journalRate = total ? noteTrades.length / total * 100 : 0;
+      const losses = trades.filter(t => number(t.profitLoss) < 0 || String(t.result || "").toLowerCase() === "loss");
+      const lossRate = total ? losses.length / total * 100 : 0;
+      const mistakeRate = total ? mistakeTagged.length / total * 100 : 0;
+      const emotionalRisk = total ? clamp(mistakeRate * 0.65 + lossRate * 0.25 + (100 - (avgRating ? avgRating * 10 : 70)) * 0.10, 0, 100) : 0;
+      const discipline = total ? clamp((checklistCoverage * 0.38 + cleanRate * 0.42 + (avgRating ? avgRating * 10 : 60) * 0.20) / 10, 0, 10) : 0;
+      const readiness = total ? clamp(discipline * 4.5 + (avgRating ? avgRating * 10 : 60) * 0.30 + cleanRate * 0.25, 0, 100) : 0;
+      return { total, rated, avgRating, mistakeTagged, cleanRate, checklistTrades, checklistCoverage, noteTrades, journalRate, losses, lossRate, mistakeRate, emotionalRisk, discipline, readiness };
+    }
+
+    function renderKpis(trades) {
+      const m = calculateMetrics(trades);
+      $("readinessScore").textContent = m.total ? `${m.readiness.toFixed(0)}/100` : "—";
+      $("readinessLabel").textContent = !m.total ? "No trades in this filter" : m.readiness >= 80 ? "Strong behavioral readiness" : m.readiness >= 60 ? "Stable, with room to improve" : "High execution risk";
+      $("disciplineScore").textContent = m.total ? `${m.discipline.toFixed(1)}/10` : "—";
+      $("executionRating").textContent = m.rated.length ? `${m.avgRating.toFixed(1)}/10` : "—";
+      $("ratedTrades").textContent = `${m.rated.length} rated trade${m.rated.length === 1 ? "" : "s"}`;
+      $("cleanTradeRate").textContent = m.total ? percent(m.cleanRate) : "—";
+      $("cleanTradeText").textContent = m.total ? `${m.total - m.mistakeTagged.length} of ${m.total} without mistake tags` : "No trades analyzed";
+      $("emotionalRisk").textContent = m.total ? `${m.emotionalRisk.toFixed(0)}/100` : "—";
+      $("riskLabel").textContent = !m.total ? "No behavior signals" : m.emotionalRisk < 25 ? "Low emotional risk" : m.emotionalRisk < 55 ? "Moderate emotional risk" : "High emotional risk";
+    }
+
+    function chartOptions() {
+      return { responsive:true, maintainAspectRatio:false, interaction:{mode:"index",intersect:false}, plugins:{legend:{labels:{color:"#c6c6cd",usePointStyle:true}},tooltip:{backgroundColor:"#0b0f10",titleColor:"#e0e3e5",bodyColor:"#c6c6cd",borderColor:"#45464d",borderWidth:1}}, scales:{x:{ticks:{color:"#909097",maxRotation:0},grid:{color:"rgba(144,144,151,.08)"}},y:{min:0,max:10,ticks:{color:"#909097",stepSize:2},grid:{color:"rgba(144,144,151,.10)"}}}};
+    }
+
+    function renderTrend(trades) {
+      const points = trades.slice(-20);
+      const labels = points.map(t => { const d = parseTradeDate(t); return d ? d.toLocaleDateString("en-US", { month:"short", day:"numeric" }) : "Trade"; });
+      const ratings = points.map(t => number(t.rating) > 0 ? clamp(number(t.rating),1,10) : null);
+      const cleanScores = points.map(t => {
+        const hasMistake = Array.isArray(t.mistakeTags) && t.mistakeTags.filter(Boolean).length > 0;
+        const hasChecklist = Array.isArray(t.checklist) && t.checklist.filter(Boolean).length > 0;
+        return clamp((hasMistake ? 3 : 8) + (hasChecklist ? 2 : 0),0,10);
+      });
+      if (behaviorTrendChart) behaviorTrendChart.destroy();
+      behaviorTrendChart = new Chart($("behaviorTrendChart"), { type:"line", data:{labels,datasets:[{label:"Execution Rating",data:ratings,borderColor:"#adc6ff",backgroundColor:"rgba(173,198,255,.12)",tension:.35,pointRadius:4,spanGaps:true},{label:"Clean Execution",data:cleanScores,borderColor:"#4edea3",backgroundColor:"rgba(78,222,163,.12)",tension:.35,pointRadius:4}]}, options:chartOptions() });
+      const m = calculateMetrics(trades);
+      $("trendSummary").textContent = !m.total ? "No trades in this filter" : `${m.total} trade${m.total === 1 ? "" : "s"} · ${m.avgRating ? m.avgRating.toFixed(1) : "—"}/10 avg rating`;
+    }
+
+    function renderWeekdayHeatmap(trades) {
+      const names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      const buckets = names.map(() => []);
+      trades.forEach(t => { const d = parseTradeDate(t); if (d) buckets[d.getDay()].push(t); });
+      const risks = buckets.map(items => {
+        if (!items.length) return null;
+        const mistakeRatio = items.filter(t => Array.isArray(t.mistakeTags) && t.mistakeTags.filter(Boolean).length).length / items.length;
+        const lossRatio = items.filter(t => number(t.profitLoss) < 0 || String(t.result || "").toLowerCase() === "loss").length / items.length;
+        const ratingRisk = items.reduce((sum,t) => sum + (number(t.rating) ? (10-clamp(number(t.rating),1,10))/10 : .3),0) / items.length;
+        return clamp((mistakeRatio*.45 + lossRatio*.35 + ratingRisk*.20)*100,0,100);
+      });
+      $("weekdayHeatmap").innerHTML = names.map((name,index) => {
+        const risk = risks[index];
+        if (risk === null) return `<div class="rounded-xl border border-outline-variant bg-surface-container-low p-4 text-center opacity-55"><p class="text-xs font-bold text-on-surface-variant">${name}</p><p class="text-xl font-black mt-3">—</p><p class="text-[10px] text-on-surface-variant mt-1">No trades</p></div>`;
+        const background = risk < 25 ? `rgba(78,222,163,${0.16 + risk/200})` : risk < 55 ? `rgba(173,198,255,${0.18 + risk/220})` : `rgba(255,180,171,${0.20 + risk/180})`;
+        const color = risk < 25 ? "#4edea3" : risk < 55 ? "#adc6ff" : "#ffb4ab";
+        return `<div class="rounded-xl border border-outline-variant p-4 text-center" style="background:${background}"><p class="text-xs font-bold text-on-surface-variant">${name}</p><p class="text-xl font-black mt-3" style="color:${color}">${risk.toFixed(0)}%</p><p class="text-[10px] text-on-surface-variant mt-1">${buckets[index].length} trade${buckets[index].length===1?"":"s"}</p></div>`;
+      }).join("");
+      const valid = risks.map((risk,index) => ({risk,index})).filter(x => x.risk !== null).sort((a,b) => b.risk-a.risk);
+      $("weekdayInsight").innerHTML = valid.length ? `Highest behavior risk currently appears on <strong class="${valid[0].risk >= 55 ? "text-error" : "text-secondary"}">${names[valid[0].index]}</strong> (${valid[0].risk.toFixed(0)}%). Use smaller size and a stricter checklist on that weekday.` : "Add more trades to identify weekday behavior patterns.";
+    }
+
+    function renderMistakes(trades) {
+      const counts = new Map();
+      trades.forEach(t => (Array.isArray(t.mistakeTags) ? t.mistakeTags : []).filter(Boolean).forEach(tag => counts.set(tag,(counts.get(tag)||0)+1)));
+      const rows = [...counts.entries()].sort((a,b) => b[1]-a[1]);
+      const total = rows.reduce((sum,[,count]) => sum+count,0);
+      $("mistakeTotal").textContent = `${total} tag${total===1?"":"s"}`;
+      if (!rows.length) {
+        $("mistakeList").innerHTML = `<div class="rounded-xl border border-dashed border-outline-variant p-6 text-center text-on-surface-variant"><span class="material-symbols-outlined text-3xl text-tertiary">verified</span><p class="font-bold text-on-surface mt-2">No mistake tags recorded</p><p class="text-sm mt-1">Keep tagging honestly after every execution.</p></div>`;
+        return;
+      }
+      const max = rows[0][1];
+      $("mistakeList").innerHTML = rows.slice(0,6).map(([tag,count],index) => `<div class="bg-surface-container-low rounded-xl border border-outline-variant p-4"><div class="flex justify-between gap-3"><span class="font-bold">${escapeHtml(tag)}</span><span class="${index===0?"text-error":"text-on-surface-variant"} font-bold">${count}</span></div><div class="h-2 bg-surface-container-highest rounded-full mt-3 overflow-hidden"><div class="h-full ${index===0?"bg-error":index===1?"bg-secondary":"bg-primary"} rounded-full" style="width:${count/max*100}%"></div></div></div>`).join("");
+    }
+
+    function renderDisciplineCards(trades) {
+      const m = calculateMetrics(trades);
+      const allItems = trades.flatMap(t => Array.isArray(t.checklist) ? t.checklist.filter(Boolean) : []);
+      const itemCounts = new Map();
+      allItems.forEach(item => itemCounts.set(item,(itemCounts.get(item)||0)+1));
+      const topItem = [...itemCounts.entries()].sort((a,b)=>b[1]-a[1])[0];
+      $("checklistCoverage").textContent = m.total ? percent(m.checklistCoverage) : "—";
+      $("avgChecklist").textContent = m.total ? (allItems.length/m.total).toFixed(1) : "—";
+      $("topChecklist").innerHTML = topItem ? `Most repeated item: <strong class="text-on-surface">${escapeHtml(topItem[0])}</strong> (${topItem[1]}×).` : "No checklist data yet.";
+      $("journalRate").textContent = m.total ? percent(m.journalRate) : "—";
+      $("taggedTradeRate").textContent = m.total ? percent(m.mistakeRate) : "—";
+      $("journalInsight").textContent = !m.total ? "No journal data yet." : m.journalRate >= 80 ? "Strong review habit. Your notes create a useful learning dataset." : "Add a short post-trade note more consistently to improve pattern detection.";
+    }
+
+    function renderInsight(trades) {
+      const m = calculateMetrics(trades);
+      if (!m.total) {
+        $("performanceInsight").textContent = "No trades match this filter. Add or retag trades to build a reliable behavioral dataset.";
+        $("focusArea").innerHTML = `<strong class="text-secondary">Focus:</strong> Record rating, checklist, notes and mistake tags on every trade.`;
+        return;
+      }
+      const counts = new Map();
+      trades.forEach(t => (Array.isArray(t.mistakeTags) ? t.mistakeTags : []).filter(Boolean).forEach(tag => counts.set(tag,(counts.get(tag)||0)+1)));
+      const top = [...counts.entries()].sort((a,b)=>b[1]-a[1])[0];
+      if (top) {
+        const affected = trades.filter(t => (t.mistakeTags||[]).includes(top[0]));
+        const pnl = affected.reduce((sum,t)=>sum+number(t.profitLoss),0);
+        $("performanceInsight").innerHTML = `Your most frequent execution issue is <strong class="text-error">${escapeHtml(top[0])}</strong>, recorded ${top[1]} time${top[1]===1?"":"s"}. Trades carrying this tag produced ${formatMoney(pnl)} in the current filter.`;
+        $("focusArea").innerHTML = `<strong class="text-secondary">Focus:</strong> Create one pre-trade rule that specifically blocks “${escapeHtml(top[0])}”.`;
+      } else {
+        $("performanceInsight").innerHTML = `No recurring mistake tag is visible in ${m.total} filtered trade${m.total===1?"":"s"}. Clean-trade rate is <strong class="text-tertiary">${percent(m.cleanRate)}</strong>, while checklist coverage is <strong class="text-secondary">${percent(m.checklistCoverage)}</strong>.`;
+        $("focusArea").innerHTML = `<strong class="text-secondary">Focus:</strong> Maintain the same checklist discipline and continue honest post-trade reviews.`;
+      }
+    }
+
+    function renderReviewTable(trades) {
+      const recent = [...trades].sort((a,b)=>(parseTradeDate(b)?.getTime()||0)-(parseTradeDate(a)?.getTime()||0)).slice(0,8);
+      $("reviewCount").textContent = `${trades.length} trade${trades.length===1?"":"s"}`;
+      $("reviewTableBody").innerHTML = recent.length ? recent.map(t => {
+        const mistakes = Array.isArray(t.mistakeTags) ? t.mistakeTags.filter(Boolean) : [];
+        const checklist = Array.isArray(t.checklist) ? t.checklist.filter(Boolean) : [];
+        const rating = number(t.rating);
+        const review = mistakes.length ? "Needs review" : checklist.length ? "Clean execution" : "Add checklist";
+        const reviewClass = mistakes.length ? "text-error" : checklist.length ? "text-tertiary" : "text-secondary";
+        return `<tr class="hover:bg-surface-container-high/50"><td class="px-6 py-4 text-sm text-on-surface-variant">${dateLabel(t)}</td><td class="px-6 py-4 font-bold">${escapeHtml(t.symbol || "—")}</td><td class="px-6 py-4">${rating ? `${rating}/10` : "—"}</td><td class="px-6 py-4">${checklist.length} item${checklist.length===1?"":"s"}</td><td class="px-6 py-4">${mistakes.length ? mistakes.map(tag=>`<span class="inline-block bg-error/10 text-error rounded-full px-2 py-1 text-xs mr-1 mb-1">${escapeHtml(tag)}</span>`).join("") : `<span class="text-on-surface-variant">None</span>`}</td><td class="px-6 py-4 text-right font-bold ${number(t.profitLoss)>=0?"text-tertiary":"text-error"}">${formatMoney(number(t.profitLoss))}</td><td class="px-6 py-4 font-bold ${reviewClass}">${review}</td></tr>`;
+      }).join("") : `<tr><td colspan="7" class="px-6 py-12 text-center text-on-surface-variant">No trades match the selected psychology filter.</td></tr>`;
+    }
+
+    function renderAll() {
+      const trades = getFilteredTrades();
+      renderKpis(trades);
+      renderTrend(trades);
+      renderWeekdayHeatmap(trades);
+      renderMistakes(trades);
+      renderDisciplineCards(trades);
+      renderInsight(trades);
+      renderReviewTable(trades);
+    }
+
+    async function loadTrades() {
+      $("loadingBanner").classList.remove("hidden");
+      $("errorBanner").classList.add("hidden");
+      try {
+        const response = await fetch(API_URL, { headers:{Accept:"application/json"} });
+        if (!response.ok) throw new Error(`API returned ${response.status}`);
+        const payload = await response.json();
+        state.allTrades = Array.isArray(payload) ? payload : Array.isArray(payload.data) ? payload.data : [];
+        renderAll();
+      } catch (error) {
+        console.error(error);
+        $("errorBanner").textContent = "Could not load psychology analytics. The Render free server may be waking up; wait 30–60 seconds and press refresh.";
+        $("errorBanner").classList.remove("hidden");
+        state.allTrades = [];
+        renderAll();
+      } finally {
+        $("loadingBanner").classList.add("hidden");
+      }
+    }
+
+    function updateCheckin() {
+      const confidence = number($("confidenceSlider").value);
+      const discipline = number($("disciplineSlider").value);
+      const stress = number($("stressSlider").value);
+      const moodBonus = state.mood === "focused" ? 8 : state.mood === "calm" ? 6 : -8;
+      const score = clamp(confidence*4 + discipline*5 + (10-stress)*3 + moodBonus,0,100);
+      $("checkinScore").textContent = score.toFixed(0);
+      $("confidenceValue").textContent = `${confidence}/10`;
+      $("disciplineValue").textContent = `${discipline}/10`;
+      $("stressValue").textContent = `${stress}/10`;
+    }
+
+    document.querySelectorAll(".range-btn").forEach(btn => btn.addEventListener("click", () => {
+      state.range = btn.dataset.range;
+      document.querySelectorAll(".range-btn").forEach(item => { item.classList.remove("bg-secondary","text-on-secondary"); item.classList.add("bg-surface-container-high","text-on-surface-variant"); });
+      btn.classList.remove("bg-surface-container-high","text-on-surface-variant");
+      btn.classList.add("bg-secondary","text-on-secondary");
+      renderAll();
+    }));
+
+    $("searchInput").addEventListener("input", event => { state.search = event.target.value; renderAll(); });
+    $("refreshBtn").addEventListener("click", loadTrades);
+    ["confidenceSlider","disciplineSlider","stressSlider"].forEach(id => $(id).addEventListener("input", updateCheckin));
+
+    const moodMessages = { focused:"Optimal attention state for executing a written plan.", calm:"Balanced emotional state. Good for disciplined execution.", anxious:"Elevated emotional risk. Reduce size or pause before entering." };
+    document.querySelectorAll(".mood-btn").forEach(btn => btn.addEventListener("click", () => {
+      state.mood = btn.dataset.mood;
+      document.querySelectorAll(".mood-btn").forEach(item => { item.classList.remove("border-secondary","bg-secondary/10","text-secondary","border-error","bg-error/10","text-error","border-tertiary","bg-tertiary/10","text-tertiary"); item.classList.add("border-outline-variant"); });
+      btn.classList.remove("border-outline-variant");
+      if (state.mood === "anxious") btn.classList.add("border-error","bg-error/10","text-error"); else if (state.mood === "focused") btn.classList.add("border-tertiary","bg-tertiary/10","text-tertiary"); else btn.classList.add("border-secondary","bg-secondary/10","text-secondary");
+      $("moodInsight").textContent = moodMessages[state.mood];
+      updateCheckin();
+    }));
+
+    $("exportBtn").addEventListener("click", () => {
+      const trades = getFilteredTrades();
+      const headers = ["Date","Symbol","Rating","Checklist Items","Mistake Tags","Notes","P&L"];
+      const rows = trades.map(t => [String(t.tradeDate||"").slice(0,10),t.symbol||"",number(t.rating)||"",(t.checklist||[]).join(" | "),(t.mistakeTags||[]).join(" | "),String(t.notes||"").replace(/\r?\n/g," "),number(t.profitLoss)]);
+      const csv = [headers,...rows].map(row => row.map(value => `"${String(value).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `protrade-psychology-${state.range.toLowerCase()}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    updateCheckin();
+    loadTrades();
+  </script>
+</body>
+</html>
