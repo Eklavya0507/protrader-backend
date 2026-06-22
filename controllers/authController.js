@@ -1,5 +1,10 @@
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+
 const User = require("../models/User");
+const { sendEmail } = require("../utils/sendEmail");
+
+const RESET_TOKEN_MINUTES = 15;
 
 const publicUser = (user) => ({
   id: user._id,
@@ -29,28 +34,77 @@ const createToken = (user) => {
   );
 };
 
-const validateNewPassword = (password) => {
+const validateStrongPassword = (password, label = "Password") => {
   if (password.length < 8) {
-    return "New password must contain at least 8 characters.";
+    return `${label} must contain at least 8 characters.`;
   }
 
   if (!/[A-Z]/.test(password)) {
-    return "New password must contain at least one uppercase letter.";
+    return `${label} must contain at least one uppercase letter.`;
   }
 
   if (!/[a-z]/.test(password)) {
-    return "New password must contain at least one lowercase letter.";
+    return `${label} must contain at least one lowercase letter.`;
   }
 
   if (!/\d/.test(password)) {
-    return "New password must contain at least one number.";
+    return `${label} must contain at least one number.`;
   }
 
   if (!/[^A-Za-z0-9]/.test(password)) {
-    return "New password must contain at least one special character.";
+    return `${label} must contain at least one special character.`;
   }
 
   return null;
+};
+
+const normalizeFrontendUrl = () =>
+  String(
+    process.env.FRONTEND_URL ||
+      "https://eklavya0507.github.io/protrader"
+  ).replace(/\/+$/, "");
+
+const createResetEmail = ({ user, resetUrl }) => {
+  const subject = "Reset your ProTrade password";
+
+  const text = [
+    `Hello ${user.name},`,
+    "",
+    "We received a request to reset your ProTrade password.",
+    `Open this link within ${RESET_TOKEN_MINUTES} minutes:`,
+    resetUrl,
+    "",
+    "If you did not request this change, you can ignore this email.",
+  ].join("\n");
+
+  const html = `
+    <div style="margin:0;padding:30px;background:#0b0f10;font-family:Arial,sans-serif;color:#edf2f5">
+      <div style="max-width:600px;margin:0 auto;background:#151a1d;border:1px solid #30383d;border-radius:20px;overflow:hidden">
+        <div style="padding:24px 28px;border-bottom:1px solid #30383d">
+          <div style="font-size:24px;font-weight:800;color:#aec3ff">ProTrade</div>
+          <div style="margin-top:4px;font-size:11px;letter-spacing:2px;color:#9da8af">ACCOUNT SECURITY</div>
+        </div>
+        <div style="padding:28px">
+          <h1 style="margin:0 0 12px;font-size:24px">Reset your password</h1>
+          <p style="margin:0 0 16px;line-height:1.7;color:#b8c1c6">
+            Hello ${user.name}, we received a request to reset your ProTrade password.
+          </p>
+          <p style="margin:0 0 22px;line-height:1.7;color:#b8c1c6">
+            This secure link expires in ${RESET_TOKEN_MINUTES} minutes.
+          </p>
+          <a href="${resetUrl}"
+             style="display:inline-block;padding:14px 20px;border-radius:12px;background:#7da1ff;color:#14203b;text-decoration:none;font-weight:800">
+            Reset Password
+          </a>
+          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
+            If you did not request this password reset, ignore this email. Your current password will remain unchanged.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return { subject, text, html };
 };
 
 // POST /api/auth/register
@@ -259,7 +313,10 @@ const changePassword = async (req, res) => {
       });
     }
 
-    const passwordError = validateNewPassword(newPassword);
+    const passwordError = validateStrongPassword(
+      newPassword,
+      "New password"
+    );
 
     if (passwordError) {
       return res.status(400).json({
@@ -286,16 +343,178 @@ const changePassword = async (req, res) => {
 
     user.password = newPassword;
     user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
     await user.save();
 
-    // This new token is valid for the incremented tokenVersion.
-    // Every older token becomes invalid immediately.
     const token = createToken(user);
 
     res.status(200).json({
       success: true,
       message:
         "Password changed successfully. Other signed-in sessions have been invalidated.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  const genericResponse = {
+    success: true,
+    message:
+      "If an account exists for that email, a password reset link has been sent.",
+  };
+
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required.",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Prevent account enumeration.
+    if (!user || !user.isActive) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedResetToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.passwordResetToken = hashedResetToken;
+    user.passwordResetExpires = new Date(
+      Date.now() + RESET_TOKEN_MINUTES * 60 * 1000
+    );
+
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl =
+      `${normalizeFrontendUrl()}/reset-password.html` +
+      `?token=${encodeURIComponent(resetToken)}` +
+      `&email=${encodeURIComponent(user.email)}`;
+
+    const emailContent = createResetEmail({ user, resetUrl });
+
+    try {
+      await sendEmail({
+        to: user.email,
+        ...emailContent,
+      });
+    } catch (emailError) {
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save({ validateBeforeSave: false });
+
+      console.error("Password reset email failed:", emailError.message);
+
+      return res.status(503).json({
+        success: false,
+        message:
+          "Password reset email could not be sent. Please try again later.",
+      });
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error("Forgot password error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Password reset could not be started.",
+    });
+  }
+};
+
+// POST /api/auth/reset-password
+const resetPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const resetToken = String(req.body.token || "");
+    const newPassword = String(req.body.newPassword || "");
+    const confirmPassword = String(req.body.confirmPassword || "");
+
+    if (!email || !resetToken || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Email, reset token, new password and confirmation are required.",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and confirmation do not match.",
+      });
+    }
+
+    const passwordError = validateStrongPassword(
+      newPassword,
+      "New password"
+    );
+
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError,
+      });
+    }
+
+    const hashedResetToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    const user = await User.findOne({
+      email,
+      passwordResetToken: hashedResetToken,
+      passwordResetExpires: { $gt: new Date() },
+      isActive: true,
+    }).select("+password +passwordResetToken +passwordResetExpires");
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This reset link is invalid or has expired. Request a new link.",
+      });
+    }
+
+    if (await user.comparePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from the current password.",
+      });
+    }
+
+    user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    user.lastLoginAt = new Date();
+
+    await user.save();
+
+    const token = createToken(user);
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Password reset successfully. Older login sessions have been invalidated.",
       token,
       data: publicUser(user),
     });
@@ -321,5 +540,7 @@ module.exports = {
   getMe,
   updateMe,
   changePassword,
+  forgotPassword,
+  resetPassword,
   logout,
 };
