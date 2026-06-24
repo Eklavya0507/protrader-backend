@@ -63,6 +63,25 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Default true preserves existing accounts created before this feature.
+    // New password registrations explicitly set this to false.
+    isEmailVerified: {
+      type: Boolean,
+      default: true,
+    },
+
+    emailVerificationToken: {
+      type: String,
+      select: false,
+      default: null,
+    },
+
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
     lastLoginAt: {
       type: Date,
       default: null,
