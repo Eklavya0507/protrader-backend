@@ -1,75 +1,134 @@
-const dns = require("node:dns").promises;
-const nodemailer = require("nodemailer");
+const https = require("node:https");
+
+const BREVO_API_HOST = "api.brevo.com";
+const BREVO_API_PATH = "/v3/smtp/email";
 
 const requiredEnvironmentVariables = [
-  "EMAIL_HOST",
-  "EMAIL_PORT",
-  "EMAIL_USER",
-  "EMAIL_PASS",
-  "EMAIL_FROM",
+  "BREVO_API_KEY",
+  "BREVO_SENDER_EMAIL",
+  "BREVO_SENDER_NAME",
 ];
 
-const assertEmailConfiguration = () => {
+const assertBrevoConfiguration = () => {
   const missing = requiredEnvironmentVariables.filter(
     (name) => !process.env[name]
   );
 
   if (missing.length > 0) {
     throw new Error(
-      `Email configuration is incomplete: ${missing.join(", ")}`
+      `Brevo configuration is incomplete: ${missing.join(", ")}`
     );
   }
 };
 
-const resolveIpv4Host = async (hostname) => {
-  const addresses = await dns.resolve4(hostname);
+const postJson = ({ hostname, path, headers, body }) =>
+  new Promise((resolve, reject) => {
+    const payload = JSON.stringify(body);
 
-  if (!Array.isArray(addresses) || addresses.length === 0) {
-    throw new Error(`No IPv4 address found for SMTP host: ${hostname}`);
-  }
+    const request = https.request(
+      {
+        hostname,
+        path,
+        method: "POST",
+        port: 443,
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+        timeout: 30000,
+      },
+      (response) => {
+        let responseBody = "";
 
-  return addresses[0];
-};
+        response.setEncoding("utf8");
 
-const createTransporter = async () => {
-  assertEmailConfiguration();
+        response.on("data", (chunk) => {
+          responseBody += chunk;
+        });
 
-  const smtpHostname = process.env.EMAIL_HOST;
-  const ipv4Address = await resolveIpv4Host(smtpHostname);
+        response.on("end", () => {
+          let parsedBody = {};
 
-  const secure =
-    String(process.env.EMAIL_SECURE || "false").toLowerCase() === "true";
+          if (responseBody) {
+            try {
+              parsedBody = JSON.parse(responseBody);
+            } catch {
+              parsedBody = { raw: responseBody };
+            }
+          }
 
-  return nodemailer.createTransport({
-    host: ipv4Address,
-    port: Number(process.env.EMAIL_PORT),
-    secure,
+          if (
+            response.statusCode &&
+            response.statusCode >= 200 &&
+            response.statusCode < 300
+          ) {
+            return resolve({
+              statusCode: response.statusCode,
+              data: parsedBody,
+            });
+          }
 
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+          const message =
+            parsedBody.message ||
+            parsedBody.code ||
+            `Brevo API request failed with status ${response.statusCode}`;
 
-    tls: {
-      servername: smtpHostname,
-    },
+          const error = new Error(message);
+          error.statusCode = response.statusCode;
+          error.response = parsedBody;
 
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 60000,
+          reject(error);
+        });
+      }
+    );
+
+    request.on("timeout", () => {
+      request.destroy(new Error("Brevo API request timed out."));
+    });
+
+    request.on("error", reject);
+    request.write(payload);
+    request.end();
   });
-};
 
 const sendEmail = async ({ to, subject, text, html }) => {
-  const transporter = await createTransporter();
+  assertBrevoConfiguration();
 
-  return transporter.sendMail({
-    from: process.env.EMAIL_FROM,
-    to,
-    subject,
-    text,
-    html,
+  const recipientEmail = String(to || "").trim();
+
+  if (!recipientEmail) {
+    throw new Error("Recipient email is required.");
+  }
+
+  const result = await postJson({
+    hostname: BREVO_API_HOST,
+    path: BREVO_API_PATH,
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+    },
+    body: {
+      sender: {
+        name: process.env.BREVO_SENDER_NAME,
+        email: process.env.BREVO_SENDER_EMAIL,
+      },
+      to: [
+        {
+          email: recipientEmail,
+        },
+      ],
+      subject,
+      htmlContent: html,
+      textContent: text,
+      tags: ["protrade-password-reset"],
+    },
   });
+
+  return {
+    messageId: result.data.messageId || null,
+    statusCode: result.statusCode,
+  };
 };
 
 module.exports = { sendEmail };
