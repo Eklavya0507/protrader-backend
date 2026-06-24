@@ -6,6 +6,7 @@ const User = require("../models/User");
 const { sendEmail } = require("../utils/sendEmail");
 
 const RESET_TOKEN_MINUTES = 15;
+const EMAIL_VERIFICATION_HOURS = 24;
 
 const getGoogleClient = () => {
   if (!process.env.GOOGLE_CLIENT_ID) {
@@ -47,6 +48,7 @@ const publicUser = (user) => ({
   email: user.email,
   role: user.role,
   isActive: user.isActive,
+  isEmailVerified: user.isEmailVerified === true,
   lastLoginAt: user.lastLoginAt,
   createdAt: user.createdAt,
   authProvider: user.authProvider,
@@ -144,6 +146,80 @@ const createResetEmail = ({ user, resetUrl }) => {
   return { subject, text, html };
 };
 
+
+const createEmailVerificationContent = ({ user, verificationUrl }) => {
+  const subject = "Verify your ProTrade email";
+
+  const text = [
+    `Hello ${user.name},`,
+    "",
+    "Verify your email address to activate your ProTrade account.",
+    `This link expires in ${EMAIL_VERIFICATION_HOURS} hours:`,
+    verificationUrl,
+    "",
+    "If you did not create this account, you can ignore this email.",
+  ].join("\n");
+
+  const html = `
+    <div style="margin:0;padding:30px;background:#0b0f10;font-family:Arial,sans-serif;color:#edf2f5">
+      <div style="max-width:600px;margin:0 auto;background:#151a1d;border:1px solid #30383d;border-radius:20px;overflow:hidden">
+        <div style="padding:24px 28px;border-bottom:1px solid #30383d">
+          <div style="font-size:24px;font-weight:800;color:#aec3ff">ProTrade</div>
+          <div style="margin-top:4px;font-size:11px;letter-spacing:2px;color:#9da8af">EMAIL VERIFICATION</div>
+        </div>
+        <div style="padding:28px">
+          <h1 style="margin:0 0 12px;font-size:24px">Verify your email</h1>
+          <p style="margin:0 0 16px;line-height:1.7;color:#b8c1c6">
+            Hello ${user.name}, confirm this email address to activate your private ProTrade workspace.
+          </p>
+          <p style="margin:0 0 22px;line-height:1.7;color:#b8c1c6">
+            This secure link expires in ${EMAIL_VERIFICATION_HOURS} hours.
+          </p>
+          <a href="${verificationUrl}"
+             style="display:inline-block;padding:14px 20px;border-radius:12px;background:#7da1ff;color:#14203b;text-decoration:none;font-weight:800">
+            Verify Email
+          </a>
+          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
+            If you did not create a ProTrade account, ignore this message.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return { subject, text, html };
+};
+
+const sendEmailVerification = async (user) => {
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+
+  user.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+
+  user.emailVerificationExpires = new Date(
+    Date.now() + EMAIL_VERIFICATION_HOURS * 60 * 60 * 1000
+  );
+
+  await user.save({ validateBeforeSave: false });
+
+  const verificationUrl =
+    `${normalizeFrontendUrl()}/verify-email.html` +
+    `?token=${encodeURIComponent(verificationToken)}` +
+    `&email=${encodeURIComponent(user.email)}`;
+
+  const emailContent = createEmailVerificationContent({
+    user,
+    verificationUrl,
+  });
+
+  await sendEmail({
+    to: user.email,
+    ...emailContent,
+  });
+};
+
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
@@ -158,10 +234,12 @@ const register = async (req, res) => {
       });
     }
 
-    if (password.length < 8) {
+    const passwordError = validateStrongPassword(password);
+
+    if (passwordError) {
       return res.status(400).json({
         success: false,
-        message: "Password must contain at least 8 characters.",
+        message: passwordError,
       });
     }
 
@@ -170,7 +248,15 @@ const register = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "An account with this email already exists.",
+        code:
+          existingUser.isEmailVerified === false
+            ? "EMAIL_NOT_VERIFIED"
+            : "ACCOUNT_EXISTS",
+        message:
+          existingUser.isEmailVerified === false
+            ? "This account exists but its email is not verified. Request a new verification email."
+            : "An account with this email already exists.",
+        email,
       });
     }
 
@@ -179,15 +265,32 @@ const register = async (req, res) => {
       email,
       password,
       authProvider: "local",
+      isEmailVerified: false,
     });
 
-    const token = createToken(user);
+    try {
+      await sendEmailVerification(user);
+    } catch (emailError) {
+      console.error(
+        "Verification email failed:",
+        emailError.message
+      );
+
+      return res.status(503).json({
+        success: false,
+        code: "VERIFICATION_EMAIL_FAILED",
+        message:
+          "Account created, but the verification email could not be sent. Use Resend Verification.",
+        email: user.email,
+      });
+    }
 
     res.status(201).json({
       success: true,
-      message: "Account created successfully.",
-      token,
-      data: publicUser(user),
+      requiresEmailVerification: true,
+      message:
+        "Account created. Check your email to verify your ProTrade account.",
+      email: user.email,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -245,6 +348,16 @@ const login = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "This account is disabled.",
+      });
+    }
+
+    if (user.isEmailVerified === false) {
+      return res.status(403).json({
+        success: false,
+        code: "EMAIL_NOT_VERIFIED",
+        message:
+          "Verify your email before signing in. You can request a new verification email.",
+        email: user.email,
       });
     }
 
@@ -313,6 +426,9 @@ const googleLogin = async (req, res) => {
       user.googleId = googleProfile.googleId;
       user.avatarUrl = googleProfile.avatarUrl || user.avatarUrl;
       user.authProvider = user.password ? "both" : "google";
+      user.isEmailVerified = true;
+      user.emailVerificationToken = null;
+      user.emailVerificationExpires = null;
       user.lastLoginAt = new Date();
 
       if (!user.name && googleProfile.name) {
@@ -327,6 +443,7 @@ const googleLogin = async (req, res) => {
         googleId: googleProfile.googleId,
         avatarUrl: googleProfile.avatarUrl,
         authProvider: "google",
+        isEmailVerified: true,
         lastLoginAt: new Date(),
       });
 
@@ -350,6 +467,118 @@ const googleLogin = async (req, res) => {
       success: false,
       message:
         "Google sign-in could not be verified. Please try again.",
+    });
+  }
+};
+
+
+// POST /api/auth/verify-email
+const verifyEmail = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const verificationToken = String(req.body.token || "").trim();
+
+    if (!email || !verificationToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and verification token are required.",
+      });
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
+
+    const user = await User.findOne({
+      email,
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() },
+      isActive: true,
+    }).select(
+      "+emailVerificationToken +emailVerificationExpires"
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_VERIFICATION_LINK",
+        message:
+          "This verification link is invalid or expired. Request a new email.",
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationExpires = null;
+    user.lastLoginAt = new Date();
+
+    await user.save({ validateBeforeSave: false });
+
+    const token = createToken(user);
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/resend-verification
+const resendVerification = async (req, res) => {
+  const genericResponse = {
+    success: true,
+    message:
+      "If an unverified account exists for that email, a new verification link has been sent.",
+  };
+
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required.",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (
+      !user ||
+      !user.isActive ||
+      user.isEmailVerified === true
+    ) {
+      return res.status(200).json(genericResponse);
+    }
+
+    try {
+      await sendEmailVerification(user);
+    } catch (emailError) {
+      console.error(
+        "Verification email resend failed:",
+        emailError.message
+      );
+
+      return res.status(503).json({
+        success: false,
+        message:
+          "Verification email could not be sent. Please try again later.",
+      });
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Verification email could not be requested.",
     });
   }
 };
@@ -680,6 +909,8 @@ module.exports = {
   register,
   login,
   googleLogin,
+  verifyEmail,
+  resendVerification,
   getMe,
   updateMe,
   changePassword,
