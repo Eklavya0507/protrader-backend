@@ -1,10 +1,45 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 
 const User = require("../models/User");
 const { sendEmail } = require("../utils/sendEmail");
 
 const RESET_TOKEN_MINUTES = 15;
+
+const getGoogleClient = () => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    throw new Error("GOOGLE_CLIENT_ID is missing from environment variables");
+  }
+
+  return new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+};
+
+const verifyGoogleCredential = async (credential) => {
+  const ticket = await getGoogleClient().verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  if (
+    !payload ||
+    !payload.sub ||
+    !payload.email ||
+    payload.email_verified !== true
+  ) {
+    throw new Error("Google account could not be verified.");
+  }
+
+  return {
+    googleId: payload.sub,
+    email: String(payload.email).trim().toLowerCase(),
+    name: String(payload.name || payload.given_name || "Google User").trim(),
+    avatarUrl: String(payload.picture || "").trim(),
+  };
+};
+
 
 const publicUser = (user) => ({
   id: user._id,
@@ -14,6 +49,8 @@ const publicUser = (user) => ({
   isActive: user.isActive,
   lastLoginAt: user.lastLoginAt,
   createdAt: user.createdAt,
+  authProvider: user.authProvider,
+  avatarUrl: user.avatarUrl || "",
   updatedAt: user.updatedAt,
 });
 
@@ -141,6 +178,7 @@ const register = async (req, res) => {
       name,
       email,
       password,
+      authProvider: "local",
     });
 
     const token = createToken(user);
@@ -181,7 +219,22 @@ const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select("+password");
 
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect email or password.",
+      });
+    }
+
+    if (!user.password) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "This account uses Google Sign-In. Continue with Google or use Forgot password to create a password.",
+      });
+    }
+
+    if (!(await user.comparePassword(password))) {
       return res.status(401).json({
         success: false,
         message: "Incorrect email or password.",
@@ -210,6 +263,93 @@ const login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+
+// POST /api/auth/google
+const googleLogin = async (req, res) => {
+  try {
+    const credential = String(req.body.credential || "").trim();
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: "Google credential is required.",
+      });
+    }
+
+    const googleProfile = await verifyGoogleCredential(credential);
+
+    let user = await User.findOne({
+      $or: [
+        { googleId: googleProfile.googleId },
+        { email: googleProfile.email },
+      ],
+    }).select("+password");
+
+    let isNewAccount = false;
+
+    if (user) {
+      if (!user.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: "This account is disabled.",
+        });
+      }
+
+      if (
+        user.googleId &&
+        user.googleId !== googleProfile.googleId
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This email is already linked to a different Google identity.",
+        });
+      }
+
+      user.googleId = googleProfile.googleId;
+      user.avatarUrl = googleProfile.avatarUrl || user.avatarUrl;
+      user.authProvider = user.password ? "both" : "google";
+      user.lastLoginAt = new Date();
+
+      if (!user.name && googleProfile.name) {
+        user.name = googleProfile.name;
+      }
+
+      await user.save({ validateBeforeSave: false });
+    } else {
+      user = await User.create({
+        name: googleProfile.name,
+        email: googleProfile.email,
+        googleId: googleProfile.googleId,
+        avatarUrl: googleProfile.avatarUrl,
+        authProvider: "google",
+        lastLoginAt: new Date(),
+      });
+
+      isNewAccount = true;
+    }
+
+    const token = createToken(user);
+
+    res.status(isNewAccount ? 201 : 200).json({
+      success: true,
+      message: isNewAccount
+        ? "Google account connected and ProTrade account created."
+        : "Google sign-in successful.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    console.error("Google sign-in failed:", error.message);
+
+    res.status(401).json({
+      success: false,
+      message:
+        "Google sign-in could not be verified. Please try again.",
     });
   }
 };
@@ -342,6 +482,7 @@ const changePassword = async (req, res) => {
     }
 
     user.password = newPassword;
+    user.authProvider = user.googleId ? "both" : "local";
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
@@ -502,6 +643,7 @@ const resetPassword = async (req, res) => {
     }
 
     user.password = newPassword;
+    user.authProvider = user.googleId ? "both" : "local";
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
@@ -537,6 +679,7 @@ const logout = async (req, res) => {
 module.exports = {
   register,
   login,
+  googleLogin,
   getMe,
   updateMe,
   changePassword,
