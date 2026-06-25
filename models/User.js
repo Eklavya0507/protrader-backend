@@ -82,6 +82,20 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Short-lived browser session used by the original device to wait for
+    // email verification completed on another device.
+    emailVerificationSessionToken: {
+      type: String,
+      select: false,
+      default: null,
+    },
+
+    emailVerificationSessionExpires: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
     lastLoginAt: {
       type: Date,
       default: null,
@@ -100,6 +114,26 @@ const userSchema = new mongoose.Schema(
     },
 
     passwordResetExpires: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
+    // Short-lived browser session used by the original device to wait for
+    // password reset completion on another device.
+    passwordResetSessionToken: {
+      type: String,
+      select: false,
+      default: null,
+    },
+
+    passwordResetSessionExpires: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
+    passwordResetSessionCompletedAt: {
       type: Date,
       select: false,
       default: null,

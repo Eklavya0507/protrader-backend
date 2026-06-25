@@ -7,6 +7,18 @@ const { sendEmail } = require("../utils/sendEmail");
 
 const RESET_TOKEN_MINUTES = 15;
 const EMAIL_VERIFICATION_HOURS = 24;
+const AUTH_FLOW_SESSION_MINUTES = 30;
+
+const hashSecret = (value) =>
+  crypto.createHash("sha256").update(value).digest("hex");
+
+const normalizeFlowSessionId = (value) => {
+  const sessionId = String(value || "").trim().toLowerCase();
+  return /^[a-f0-9]{64}$/.test(sessionId) ? sessionId : "";
+};
+
+const hasActiveDate = (value) =>
+  value instanceof Date && value.getTime() > Date.now();
 
 const getGoogleClient = () => {
   if (!process.env.GOOGLE_CLIENT_ID) {
@@ -113,6 +125,8 @@ const createResetEmail = ({ user, resetUrl }) => {
     `Open this link within ${RESET_TOKEN_MINUTES} minutes:`,
     resetUrl,
     "",
+    "If the reset was requested on another device, keep that page open. It will update automatically after the password is changed.",
+    "",
     "If you did not request this change, you can ignore this email.",
   ].join("\n");
 
@@ -135,7 +149,10 @@ const createResetEmail = ({ user, resetUrl }) => {
              style="display:inline-block;padding:14px 20px;border-radius:12px;background:#7da1ff;color:#14203b;text-decoration:none;font-weight:800">
             Reset Password
           </a>
-          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
+          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#a9c2ff">
+            Requested this on another device? Keep that page open. It will update automatically after you change the password here.
+          </p>
+          <p style="margin:14px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
             If you did not request this password reset, ignore this email. Your current password will remain unchanged.
           </p>
         </div>
@@ -156,6 +173,8 @@ const createEmailVerificationContent = ({ user, verificationUrl }) => {
     "Verify your email address to activate your ProTrade account.",
     `This link expires in ${EMAIL_VERIFICATION_HOURS} hours:`,
     verificationUrl,
+    "",
+    "If you registered on another device, keep that page open. It will sign in automatically after verification.",
     "",
     "If you did not create this account, you can ignore this email.",
   ].join("\n");
@@ -179,7 +198,10 @@ const createEmailVerificationContent = ({ user, verificationUrl }) => {
              style="display:inline-block;padding:14px 20px;border-radius:12px;background:#7da1ff;color:#14203b;text-decoration:none;font-weight:800">
             Verify Email
           </a>
-          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
+          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#a9c2ff">
+            Registered on another device? Keep that page open. It will continue automatically after you verify here.
+          </p>
+          <p style="margin:14px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
             If you did not create a ProTrade account, ignore this message.
           </p>
         </div>
@@ -190,17 +212,28 @@ const createEmailVerificationContent = ({ user, verificationUrl }) => {
   return { subject, text, html };
 };
 
-const sendEmailVerification = async (user) => {
+const sendEmailVerification = async (
+  user,
+  { verificationSessionId = "" } = {}
+) => {
   const verificationToken = crypto.randomBytes(32).toString("hex");
+  const normalizedSessionId = normalizeFlowSessionId(
+    verificationSessionId
+  );
 
-  user.emailVerificationToken = crypto
-    .createHash("sha256")
-    .update(verificationToken)
-    .digest("hex");
-
+  user.emailVerificationToken = hashSecret(verificationToken);
   user.emailVerificationExpires = new Date(
     Date.now() + EMAIL_VERIFICATION_HOURS * 60 * 60 * 1000
   );
+
+  if (normalizedSessionId) {
+    user.emailVerificationSessionToken = hashSecret(
+      normalizedSessionId
+    );
+    user.emailVerificationSessionExpires = new Date(
+      Date.now() + AUTH_FLOW_SESSION_MINUTES * 60 * 1000
+    );
+  }
 
   await user.save({ validateBeforeSave: false });
 
@@ -226,6 +259,22 @@ const register = async (req, res) => {
     const name = String(req.body.name || "").trim();
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "");
+    const rawVerificationSessionId = String(
+      req.body.verificationSessionId || ""
+    ).trim();
+    const verificationSessionId = normalizeFlowSessionId(
+      rawVerificationSessionId
+    );
+
+    if (
+      rawVerificationSessionId &&
+      !verificationSessionId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification session is invalid. Refresh and try again.",
+      });
+    }
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -269,7 +318,9 @@ const register = async (req, res) => {
     });
 
     try {
-      await sendEmailVerification(user);
+      await sendEmailVerification(user, {
+        verificationSessionId,
+      });
     } catch (emailError) {
       console.error(
         "Verification email failed:",
@@ -291,6 +342,8 @@ const register = async (req, res) => {
       message:
         "Account created. Check your email to verify your ProTrade account.",
       email: user.email,
+      waitingSessionExpiresInSeconds:
+        AUTH_FLOW_SESSION_MINUTES * 60,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -485,10 +538,7 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(verificationToken)
-      .digest("hex");
+    const hashedToken = hashSecret(verificationToken);
 
     const user = await User.findOne({
       email,
@@ -496,7 +546,12 @@ const verifyEmail = async (req, res) => {
       emailVerificationExpires: { $gt: new Date() },
       isActive: true,
     }).select(
-      "+emailVerificationToken +emailVerificationExpires"
+      [
+        "+emailVerificationToken",
+        "+emailVerificationExpires",
+        "+emailVerificationSessionToken",
+        "+emailVerificationSessionExpires",
+      ].join(" ")
     );
 
     if (!user) {
@@ -508,25 +563,114 @@ const verifyEmail = async (req, res) => {
       });
     }
 
+    const waitingOnOriginalDevice =
+      Boolean(user.emailVerificationSessionToken) &&
+      hasActiveDate(user.emailVerificationSessionExpires);
+
     user.isEmailVerified = true;
     user.emailVerificationToken = null;
     user.emailVerificationExpires = null;
-    user.lastLoginAt = new Date();
+
+    if (!waitingOnOriginalDevice) {
+      user.emailVerificationSessionToken = null;
+      user.emailVerificationSessionExpires = null;
+      user.lastLoginAt = new Date();
+    }
 
     await user.save({ validateBeforeSave: false });
 
-    const token = createToken(user);
-
-    res.status(200).json({
+    const response = {
       success: true,
-      message: "Email verified successfully.",
-      token,
+      message: waitingOnOriginalDevice
+        ? "Email verified successfully. Return to your original device."
+        : "Email verified successfully.",
+      continueOnOriginalDevice: waitingOnOriginalDevice,
       data: publicUser(user),
-    });
+    };
+
+    if (!waitingOnOriginalDevice) {
+      response.token = createToken(user);
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(400).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/verification-status
+const verificationStatus = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const rawSessionId = String(req.body.sessionId || "").trim();
+    const sessionId = normalizeFlowSessionId(rawSessionId);
+
+    if (!email || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and verification session are required.",
+      });
+    }
+
+    const user = await User.findOne({
+      email,
+      isActive: true,
+      emailVerificationSessionToken: hashSecret(sessionId),
+    }).select(
+      "+emailVerificationSessionToken +emailVerificationSessionExpires"
+    );
+
+    // A generic pending response avoids confirming whether an account exists.
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        verified: false,
+      });
+    }
+
+    if (!hasActiveDate(user.emailVerificationSessionExpires)) {
+      user.emailVerificationSessionToken = null;
+      user.emailVerificationSessionExpires = null;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        status: "expired",
+        verified: false,
+        message:
+          "This waiting session expired. Request a new verification email.",
+      });
+    }
+
+    if (user.isEmailVerified !== true) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        verified: false,
+      });
+    }
+
+    user.emailVerificationSessionToken = null;
+    user.emailVerificationSessionExpires = null;
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      status: "verified",
+      verified: true,
+      message: "Email verified. Opening your private workspace.",
+      token: createToken(user),
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Verification status could not be checked.",
     });
   }
 };
@@ -541,6 +685,22 @@ const resendVerification = async (req, res) => {
 
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
+    const rawVerificationSessionId = String(
+      req.body.verificationSessionId || ""
+    ).trim();
+    const verificationSessionId = normalizeFlowSessionId(
+      rawVerificationSessionId
+    );
+
+    if (
+      rawVerificationSessionId &&
+      !verificationSessionId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification session is invalid. Refresh and try again.",
+      });
+    }
 
     if (!email) {
       return res.status(400).json({
@@ -560,7 +720,9 @@ const resendVerification = async (req, res) => {
     }
 
     try {
-      await sendEmailVerification(user);
+      await sendEmailVerification(user, {
+        verificationSessionId,
+      });
     } catch (emailError) {
       console.error(
         "Verification email resend failed:",
@@ -715,6 +877,9 @@ const changePassword = async (req, res) => {
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
+    user.passwordResetSessionToken = null;
+    user.passwordResetSessionExpires = null;
+    user.passwordResetSessionCompletedAt = null;
     await user.save();
 
     const token = createToken(user);
@@ -740,10 +905,27 @@ const forgotPassword = async (req, res) => {
     success: true,
     message:
       "If an account exists for that email, a password reset link has been sent.",
+    waitingSessionExpiresInSeconds: RESET_TOKEN_MINUTES * 60,
   };
 
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
+    const rawPasswordResetSessionId = String(
+      req.body.passwordResetSessionId || ""
+    ).trim();
+    const passwordResetSessionId = normalizeFlowSessionId(
+      rawPasswordResetSessionId
+    );
+
+    if (
+      rawPasswordResetSessionId &&
+      !passwordResetSessionId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Password reset session is invalid. Refresh and try again.",
+      });
+    }
 
     if (!email) {
       return res.status(400).json({
@@ -760,15 +942,21 @@ const forgotPassword = async (req, res) => {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedResetToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
 
-    user.passwordResetToken = hashedResetToken;
+    user.passwordResetToken = hashSecret(resetToken);
     user.passwordResetExpires = new Date(
       Date.now() + RESET_TOKEN_MINUTES * 60 * 1000
     );
+
+    if (passwordResetSessionId) {
+      user.passwordResetSessionToken = hashSecret(
+        passwordResetSessionId
+      );
+      user.passwordResetSessionExpires = new Date(
+        Date.now() + RESET_TOKEN_MINUTES * 60 * 1000
+      );
+      user.passwordResetSessionCompletedAt = null;
+    }
 
     await user.save({ validateBeforeSave: false });
 
@@ -787,6 +975,9 @@ const forgotPassword = async (req, res) => {
     } catch (emailError) {
       user.passwordResetToken = null;
       user.passwordResetExpires = null;
+      user.passwordResetSessionToken = null;
+      user.passwordResetSessionExpires = null;
+      user.passwordResetSessionCompletedAt = null;
       await user.save({ validateBeforeSave: false });
 
       console.error("Password reset email failed:", emailError.message);
@@ -844,17 +1035,23 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    const hashedResetToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
+    const hashedResetToken = hashSecret(resetToken);
 
     const user = await User.findOne({
       email,
       passwordResetToken: hashedResetToken,
       passwordResetExpires: { $gt: new Date() },
       isActive: true,
-    }).select("+password +passwordResetToken +passwordResetExpires");
+    }).select(
+      [
+        "+password",
+        "+passwordResetToken",
+        "+passwordResetExpires",
+        "+passwordResetSessionToken",
+        "+passwordResetSessionExpires",
+        "+passwordResetSessionCompletedAt",
+      ].join(" ")
+    );
 
     if (!user) {
       return res.status(400).json({
@@ -871,28 +1068,123 @@ const resetPassword = async (req, res) => {
       });
     }
 
+    const waitingOnOriginalDevice =
+      Boolean(user.passwordResetSessionToken) &&
+      hasActiveDate(user.passwordResetSessionExpires);
+
     user.password = newPassword;
     user.authProvider = user.googleId ? "both" : "local";
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
-    user.lastLoginAt = new Date();
+
+    if (waitingOnOriginalDevice) {
+      user.passwordResetSessionCompletedAt = new Date();
+    } else {
+      user.passwordResetSessionToken = null;
+      user.passwordResetSessionExpires = null;
+      user.passwordResetSessionCompletedAt = null;
+      user.lastLoginAt = new Date();
+    }
 
     await user.save();
 
-    const token = createToken(user);
-
-    res.status(200).json({
+    const response = {
       success: true,
-      message:
-        "Password reset successfully. Older login sessions have been invalidated.",
-      token,
+      message: waitingOnOriginalDevice
+        ? "Password reset successfully. Return to your original device."
+        : "Password reset successfully. Older login sessions have been invalidated.",
+      continueOnOriginalDevice: waitingOnOriginalDevice,
       data: publicUser(user),
-    });
+    };
+
+    if (!waitingOnOriginalDevice) {
+      response.token = createToken(user);
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(400).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/password-reset-status
+const passwordResetStatus = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const rawSessionId = String(req.body.sessionId || "").trim();
+    const sessionId = normalizeFlowSessionId(rawSessionId);
+
+    if (!email || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password reset session are required.",
+      });
+    }
+
+    const user = await User.findOne({
+      email,
+      isActive: true,
+      passwordResetSessionToken: hashSecret(sessionId),
+    }).select(
+      [
+        "+passwordResetSessionToken",
+        "+passwordResetSessionExpires",
+        "+passwordResetSessionCompletedAt",
+      ].join(" ")
+    );
+
+    // Keep the response generic when the email/session pair does not match.
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        completed: false,
+      });
+    }
+
+    if (!hasActiveDate(user.passwordResetSessionExpires)) {
+      user.passwordResetSessionToken = null;
+      user.passwordResetSessionExpires = null;
+      user.passwordResetSessionCompletedAt = null;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        status: "expired",
+        completed: false,
+        message:
+          "This waiting session expired. Request a new password reset email.",
+      });
+    }
+
+    if (!user.passwordResetSessionCompletedAt) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        completed: false,
+      });
+    }
+
+    user.passwordResetSessionToken = null;
+    user.passwordResetSessionExpires = null;
+    user.passwordResetSessionCompletedAt = null;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      status: "completed",
+      completed: true,
+      message:
+        "Password changed successfully. Sign in with your new password.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Password reset status could not be checked.",
     });
   }
 };
@@ -910,11 +1202,13 @@ module.exports = {
   login,
   googleLogin,
   verifyEmail,
+  verificationStatus,
   resendVerification,
   getMe,
   updateMe,
   changePassword,
   forgotPassword,
   resetPassword,
+  passwordResetStatus,
   logout,
 };
