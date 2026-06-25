@@ -4,15 +4,11 @@ const mongoose = require("mongoose");
 const User = require("../models/User");
 const Trade = require("../models/Trade");
 const Journal = require("../models/Journal");
-const Setting = require("../models/Setting");
 
 const ownerEmail = String(process.argv[2] || "").trim().toLowerCase();
 
 const legacyFilter = {
-  $or: [
-    { user: { $exists: false } },
-    { user: null },
-  ],
+  $or: [{ user: { $exists: false } }, { user: null }],
 };
 
 const settingFields = [
@@ -54,16 +50,16 @@ const run = async () => {
     throw new Error(`No registered user found for ${ownerEmail}`);
   }
 
-  const tradeResult = await Trade.updateMany(
-    legacyFilter,
-    { $set: { user: owner._id } }
-  );
+  const tradeResult = await Trade.updateMany(legacyFilter, {
+    $set: { user: owner._id },
+  });
 
-  const journalResult = await Journal.updateMany(
-    legacyFilter,
-    { $set: { user: owner._id } }
-  );
+  const journalResult = await Journal.updateMany(legacyFilter, {
+    $set: { user: owner._id },
+  });
 
+  // Use the raw collection because legacy settings may not satisfy the new
+  // required user/singletonKey schema until migration is completed.
   const settingsCollection = mongoose.connection.collection("settings");
 
   const existingOwnedSetting = await settingsCollection.findOne({
@@ -79,6 +75,7 @@ const run = async () => {
 
   if (legacySettings.length > 0) {
     const primaryLegacy = legacySettings[0];
+    const ownerSingletonKey = `user:${owner._id}`;
 
     if (existingOwnedSetting) {
       const copiedValues = {};
@@ -91,7 +88,15 @@ const run = async () => {
 
       await settingsCollection.updateOne(
         { _id: existingOwnedSetting._id },
-        { $set: copiedValues }
+        {
+          $set: {
+            ...copiedValues,
+            user: owner._id,
+            singletonKey:
+              existingOwnedSetting.singletonKey || ownerSingletonKey,
+            updatedAt: new Date(),
+          },
+        }
       );
 
       await settingsCollection.deleteMany({
@@ -104,8 +109,11 @@ const run = async () => {
       await settingsCollection.updateOne(
         { _id: primaryLegacy._id },
         {
-          $set: { user: owner._id },
-          $setOnInsert: { singletonKey: `user:${owner._id}` },
+          $set: {
+            user: owner._id,
+            singletonKey: ownerSingletonKey,
+            updatedAt: new Date(),
+          },
         }
       );
 
@@ -119,11 +127,36 @@ const run = async () => {
     }
   }
 
+  const ownerTradeCount = await Trade.countDocuments({ user: owner._id });
+  const ownerJournalCount = await Journal.countDocuments({ user: owner._id });
+  const ownerSettingsCount = await settingsCollection.countDocuments({
+    user: owner._id,
+  });
+
+  const orphanTrades = await Trade.countDocuments(legacyFilter);
+  const orphanJournals = await Journal.countDocuments(legacyFilter);
+  const orphanSettings = await settingsCollection.countDocuments(legacyFilter);
+
+  console.log("");
   console.log("Legacy migration completed.");
   console.log(`Owner: ${owner.name} <${owner.email}>`);
-  console.log(`Trades assigned: ${tradeResult.modifiedCount}`);
-  console.log(`Journals assigned: ${journalResult.modifiedCount}`);
+  console.log(`Trades assigned in this run: ${tradeResult.modifiedCount}`);
+  console.log(`Journals assigned in this run: ${journalResult.modifiedCount}`);
   console.log(`Settings: ${settingsAction}`);
+  console.log("");
+  console.log("Owner totals after migration:");
+  console.log(`Trades: ${ownerTradeCount}`);
+  console.log(`Journals: ${ownerJournalCount}`);
+  console.log(`Settings documents: ${ownerSettingsCount}`);
+  console.log("");
+  console.log("Remaining orphan records:");
+  console.log(`Trades: ${orphanTrades}`);
+  console.log(`Journals: ${orphanJournals}`);
+  console.log(`Settings: ${orphanSettings}`);
+
+  if (orphanTrades || orphanJournals || orphanSettings) {
+    process.exitCode = 2;
+  }
 };
 
 run()
