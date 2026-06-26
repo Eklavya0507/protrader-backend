@@ -2,7 +2,6 @@ const Setting = require("../models/Setting");
 
 const allowedFields = [
   "fullName",
-  "email",
   "timezone",
   "tradingRole",
   "currency",
@@ -44,6 +43,13 @@ const getOrCreateSettings = async (user) => {
 
   if (!settings) {
     settings = await Setting.create(createDefaultSettings(user));
+  }
+
+  // The authentication email is controlled by the verified email-change flow,
+  // not by ordinary workspace settings.
+  if (settings.email !== (user.email || "")) {
+    settings.email = user.email || "";
+    await settings.save({ validateBeforeSave: false });
   }
 
   return settings;

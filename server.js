@@ -18,6 +18,7 @@ const tradeRoutes = require("./routes/tradeRoutes");
 const journalRoutes = require("./routes/journalRoutes");
 const settingRoutes = require("./routes/settingRoutes");
 const authRoutes = require("./routes/authRoutes");
+const accountRoutes = require("./routes/accountRoutes");
 
 const {
   requestId,
@@ -128,6 +129,7 @@ app.use("/api/trades", tradeRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/account", accountRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
