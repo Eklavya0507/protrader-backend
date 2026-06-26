@@ -68,6 +68,7 @@ const corsOptions = {
     "Content-Type",
     "Authorization",
     "X-Client-Timezone",
+    "X-Client-Device-Id",
   ],
   optionsSuccessStatus: 204,
   maxAge: 86400,

@@ -20,6 +20,9 @@ const {
   startSession,
   refreshSession,
   listSessions,
+  updateTrustedSession,
+  reportSessionNotMine,
+  revokeFromSecurityAlert,
   revokeCurrentSession,
   revokeSession,
   logoutOtherSessions,
@@ -43,8 +46,11 @@ router.post("/password-reset-status", passwordResetStatus);
 
 // Device and refresh-session routes.
 router.post("/sessions/refresh", refreshSession);
+router.post("/sessions/revoke-alert", revokeFromSecurityAlert);
 router.post("/sessions/start", protect, startSession);
 router.get("/sessions", protect, listSessions);
+router.patch("/sessions/:sessionId/trust", protect, updateTrustedSession);
+router.post("/sessions/:sessionId/not-me", protect, reportSessionNotMine);
 router.delete("/sessions/current", protect, revokeCurrentSession);
 router.post("/sessions/logout-others", protect, logoutOtherSessions);
 router.post("/sessions/logout-all", protect, logoutAllSessions);

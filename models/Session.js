@@ -99,6 +99,22 @@ const sessionSchema = new mongoose.Schema(
       default: false,
     },
 
+    isTrusted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    trustedAt: {
+      type: Date,
+      default: null,
+    },
+
+    newDeviceAlertSentAt: {
+      type: Date,
+      default: null,
+    },
+
     lastActiveAt: {
       type: Date,
       default: Date.now,
@@ -129,5 +145,6 @@ const sessionSchema = new mongoose.Schema(
 
 sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 sessionSchema.index({ user: 1, revokedAt: 1, expiresAt: 1 });
+sessionSchema.index({ user: 1, fingerprintHash: 1, isTrusted: 1 });
 
 module.exports = mongoose.model("Session", sessionSchema);

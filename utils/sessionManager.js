@@ -143,14 +143,22 @@ const getTimezone = (req) => {
   return timezone.slice(0, 120) || "Timezone unavailable";
 };
 
+const getClientDeviceId = (req) => {
+  const value = String(req.headers["x-client-device-id"] || "").trim();
+  return /^[a-zA-Z0-9._:-]{16,160}$/.test(value) ? value : "";
+};
+
 const getSessionMetadata = (req) => {
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 1000);
   const parsed = parseUserAgent(userAgent);
   const ipAddress = getClientIp(req);
   const ipAddressHash = hashPrivateValue(ipAddress || "unknown-ip");
-  const fingerprintHash = hashValue(
-    `${userAgent}|${getTimezone(req)}`
-  );
+  const timezone = getTimezone(req);
+  const clientDeviceId = getClientDeviceId(req);
+  const legacyFingerprintHash = hashValue(`${userAgent}|${timezone}`);
+  const fingerprintHash = clientDeviceId
+    ? hashPrivateValue(`device:${clientDeviceId}`)
+    : legacyFingerprintHash;
 
   return {
     ...parsed,
@@ -158,8 +166,9 @@ const getSessionMetadata = (req) => {
     ipAddressMasked: maskIpAddress(ipAddress),
     ipAddressHash,
     approximateLocation: getApproximateLocation(req),
-    timezone: getTimezone(req),
+    timezone,
     fingerprintHash,
+    legacyFingerprintHash,
   };
 };
 
@@ -246,18 +255,30 @@ const createSession = async ({ user, req, revokeSession = null }) => {
   }
 
   const metadata = getSessionMetadata(req);
+  const { legacyFingerprintHash, ...storedMetadata } = metadata;
+  const fingerprintCandidates = [
+    metadata.fingerprintHash,
+    legacyFingerprintHash,
+  ].filter(Boolean);
 
-  const previousMatchingSession = await Session.exists({
-    user: user._id,
-    fingerprintHash: metadata.fingerprintHash,
-  });
+  const [previousMatchingSession, hasSessionHistory] = await Promise.all([
+    Session.findOne({
+      user: user._id,
+      fingerprintHash: { $in: fingerprintCandidates },
+    })
+      .sort({ createdAt: -1 })
+      .select("+fingerprintHash")
+      .lean(),
+    Session.exists({ user: user._id }),
+  ]);
 
-  const existingActiveCount = await Session.countDocuments({
-    user: user._id,
-    revokedAt: null,
-    expiresAt: { $gt: new Date() },
-  });
+  // Existing pre-Batch-3 sessions have no isTrusted value. Treat those as
+  // trusted so current users are not surprised by a false security alert.
+  const inheritedTrusted = previousMatchingSession
+    ? previousMatchingSession.isTrusted !== false
+    : !hasSessionHistory;
 
+  const isNewDevice = Boolean(hasSessionHistory && !previousMatchingSession);
   const sessionId = crypto.randomBytes(32).toString("hex");
   const refreshToken = createRefreshToken(sessionId);
 
@@ -266,8 +287,10 @@ const createSession = async ({ user, req, revokeSession = null }) => {
     sessionId,
     refreshTokenHash: hashValue(refreshToken),
     tokenVersion: user.tokenVersion || 0,
-    ...metadata,
-    isNewDevice: existingActiveCount > 0 && !previousMatchingSession,
+    ...storedMetadata,
+    isNewDevice,
+    isTrusted: inheritedTrusted,
+    trustedAt: inheritedTrusted ? new Date() : null,
     lastActiveAt: new Date(),
     expiresAt: getRefreshExpiry(),
   });

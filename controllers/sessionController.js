@@ -8,6 +8,10 @@ const {
   rotateRefreshToken,
   revokeSessionDocument,
 } = require("../utils/sessionManager");
+const {
+  sendNewDeviceLoginAlert,
+  verifySecurityActionToken,
+} = require("../utils/securityAlert");
 
 const publicUser = (user) => ({
   id: user._id,
@@ -30,11 +34,49 @@ const sessionResponse = ({ token, refreshToken, session, expiresInSeconds }) => 
   accessTokenExpiresInSeconds: expiresInSeconds,
   refreshSessionExpiresAt: session.expiresAt,
   newDeviceDetected: session.isNewDevice === true,
+  trustedDevice: session.isTrusted === true,
 });
 
+const validSessionId = (value) =>
+  /^[a-f0-9]{64}$/.test(String(value || "").trim().toLowerCase());
+
+const findOwnedSession = async (userId, sessionId) =>
+  Session.findOne({
+    user: userId,
+    sessionId,
+  }).select("+sessionId +fingerprintHash");
+
+const revokeFingerprintSessions = async ({
+  userId,
+  fingerprintHash,
+  sessionId,
+  reason,
+}) => {
+  const query = {
+    user: userId,
+    revokedAt: null,
+  };
+
+  if (fingerprintHash) {
+    query.fingerprintHash = fingerprintHash;
+  } else if (sessionId) {
+    query.sessionId = sessionId;
+  } else {
+    return { modifiedCount: 0 };
+  }
+
+  return Session.updateMany(query, {
+    $set: {
+      revokedAt: new Date(),
+      revokeReason: reason,
+      isTrusted: false,
+      trustedAt: null,
+    },
+  });
+};
+
 // POST /api/auth/sessions/start
-// Upgrades a valid legacy JWT into a managed device session.
-const startSession = async (req, res) => {
+const startSession = async (req, res, next) => {
   try {
     const result = await createSession({
       user: req.user,
@@ -45,24 +87,40 @@ const startSession = async (req, res) => {
     req.user.lastLoginAt = new Date();
     await req.user.save({ validateBeforeSave: false });
 
+    const shouldSendAlert =
+      result.session.isNewDevice === true &&
+      result.session.isTrusted !== true;
+
     res.status(201).json({
       success: true,
-      message: result.session.isNewDevice
-        ? "Secure session created for a new device."
+      message: shouldSendAlert
+        ? "Secure session created. A new-device security alert was sent."
         : "Secure device session created.",
       ...sessionResponse(result),
+      securityAlertQueued: shouldSendAlert,
       data: publicUser(req.user),
     });
+
+    if (shouldSendAlert) {
+      setImmediate(() => {
+        sendNewDeviceLoginAlert({
+          user: req.user,
+          session: result.session,
+        }).catch((error) => {
+          console.error(
+            `[${req.requestId || "no-request-id"}] New-device email failed:`,
+            error.message
+          );
+        });
+      });
+    }
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "A secure device session could not be created.",
-    });
+    next(error);
   }
 };
 
 // POST /api/auth/sessions/refresh
-const refreshSession = async (req, res) => {
+const refreshSession = async (req, res, next) => {
   try {
     const parsed = parseRefreshToken(req.body.refreshToken);
 
@@ -71,6 +129,7 @@ const refreshSession = async (req, res) => {
         success: false,
         code: "INVALID_REFRESH_TOKEN",
         message: "The refresh token is invalid.",
+        requestId: req.requestId,
       });
     }
 
@@ -83,6 +142,7 @@ const refreshSession = async (req, res) => {
         success: false,
         code: "SESSION_EXPIRED",
         message: "This device session has expired. Please sign in again.",
+        requestId: req.requestId,
       });
     }
 
@@ -94,8 +154,8 @@ const refreshSession = async (req, res) => {
       return res.status(401).json({
         success: false,
         code: "REFRESH_TOKEN_REUSED",
-        message:
-          "This session was revoked because an old refresh token was reused.",
+        message: "This session was revoked because an old refresh token was reused.",
+        requestId: req.requestId,
       });
     }
 
@@ -112,6 +172,7 @@ const refreshSession = async (req, res) => {
         success: false,
         code: "SESSION_REVOKED",
         message: "This session is no longer valid. Please sign in again.",
+        requestId: req.requestId,
       });
     }
 
@@ -124,15 +185,12 @@ const refreshSession = async (req, res) => {
       data: publicUser(user),
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "The session could not be refreshed.",
-    });
+    next(error);
   }
 };
 
 // GET /api/auth/sessions
-const listSessions = async (req, res) => {
+const listSessions = async (req, res, next) => {
   try {
     const now = new Date();
 
@@ -179,6 +237,10 @@ const listSessions = async (req, res) => {
         approximateLocation: session.approximateLocation,
         timezone: session.timezone,
         isNewDevice: session.isNewDevice === true,
+        // Missing value means it is a pre-Batch-3 session, which is trusted.
+        isTrusted: session.isTrusted !== false,
+        trustedAt: session.trustedAt || null,
+        alertSentAt: session.newDeviceAlertSentAt || null,
         isCurrent: session.sessionId === currentSessionId,
         signedInAt: session.createdAt,
         lastActiveAt: session.lastActiveAt,
@@ -186,15 +248,164 @@ const listSessions = async (req, res) => {
       })),
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Active sessions could not be loaded.",
+    next(error);
+  }
+};
+
+// PATCH /api/auth/sessions/:sessionId/trust
+const updateTrustedSession = async (req, res, next) => {
+  try {
+    const sessionId = String(req.params.sessionId || "").trim().toLowerCase();
+    const trusted = req.body?.trusted !== false;
+
+    if (!validSessionId(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_SESSION_ID",
+        message: "Session identifier is invalid.",
+        requestId: req.requestId,
+      });
+    }
+
+    const session = await findOwnedSession(req.user._id, sessionId);
+
+    if (!session || session.revokedAt) {
+      return res.status(404).json({
+        success: false,
+        code: "SESSION_NOT_FOUND",
+        message: "The selected session was not found.",
+        requestId: req.requestId,
+      });
+    }
+
+    const now = new Date();
+    const trustQuery = session.fingerprintHash
+      ? { user: req.user._id, fingerprintHash: session.fingerprintHash }
+      : { _id: session._id };
+
+    await Session.updateMany(
+      trustQuery,
+      {
+        $set: {
+          isTrusted: trusted,
+          trustedAt: trusted ? now : null,
+          isNewDevice: trusted ? false : session.isNewDevice,
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      trusted,
+      message: trusted
+        ? "This device is now trusted."
+        : "This device is no longer trusted.",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/sessions/:sessionId/not-me
+const reportSessionNotMine = async (req, res, next) => {
+  try {
+    const sessionId = String(req.params.sessionId || "").trim().toLowerCase();
+
+    if (!validSessionId(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_SESSION_ID",
+        message: "Session identifier is invalid.",
+        requestId: req.requestId,
+      });
+    }
+
+    const session = await findOwnedSession(req.user._id, sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        code: "SESSION_NOT_FOUND",
+        message: "The selected session was not found.",
+        requestId: req.requestId,
+      });
+    }
+
+    const currentSessionRevoked = req.authSession?.sessionId === sessionId;
+    const result = await revokeFingerprintSessions({
+      userId: req.user._id,
+      fingerprintHash: session.fingerprintHash,
+      sessionId,
+      reason: "user-reported-not-mine",
+    });
+
+    res.status(200).json({
+      success: true,
+      currentSessionRevoked,
+      revokedCount: result.modifiedCount,
+      message: "The unrecognized device has been revoked. Reset your password if you suspect account access.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/sessions/revoke-alert (public, signed email action)
+const revokeFromSecurityAlert = async (req, res, next) => {
+  try {
+    const payload = verifySecurityActionToken(req.body?.token);
+
+    if (!validSessionId(payload.sessionId)) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_SECURITY_ACTION",
+        message: "Security action token is invalid.",
+        requestId: req.requestId,
+      });
+    }
+
+    const session = await Session.findOne({
+      user: payload.userId,
+      sessionId: payload.sessionId,
+    }).select("+sessionId +fingerprintHash");
+
+    if (!session) {
+      return res.status(200).json({
+        success: true,
+        alreadySecured: true,
+        message: "This login is no longer active.",
+      });
+    }
+
+    const result = await revokeFingerprintSessions({
+      userId: payload.userId,
+      fingerprintHash: session.fingerprintHash,
+      sessionId: payload.sessionId,
+      reason: "email-alert-rejected-device",
+    });
+
+    res.status(200).json({
+      success: true,
+      revokedCount: result.modifiedCount,
+      message: "The unrecognized device has been revoked. Reset your password now if this login was not yours.",
+    });
+  } catch (error) {
+    if (["JsonWebTokenError", "TokenExpiredError", "NotBeforeError"].includes(error?.name)) {
+      return res.status(400).json({
+        success: false,
+        code: error.name === "TokenExpiredError" ? "SECURITY_ACTION_EXPIRED" : "INVALID_SECURITY_ACTION",
+        message: error.name === "TokenExpiredError"
+          ? "This security action link has expired."
+          : "This security action link is invalid.",
+        requestId: req.requestId,
+      });
+    }
+    next(error);
   }
 };
 
 // DELETE /api/auth/sessions/current
-const revokeCurrentSession = async (req, res) => {
+const revokeCurrentSession = async (req, res, next) => {
   try {
     if (req.authSession) {
       await revokeSessionDocument(req.authSession, "user-logout");
@@ -205,22 +416,21 @@ const revokeCurrentSession = async (req, res) => {
       message: "This device has been signed out.",
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "This device could not be signed out.",
-    });
+    next(error);
   }
 };
 
 // DELETE /api/auth/sessions/:sessionId
-const revokeSession = async (req, res) => {
+const revokeSession = async (req, res, next) => {
   try {
     const sessionId = String(req.params.sessionId || "").trim().toLowerCase();
 
-    if (!/^[a-f0-9]{64}$/.test(sessionId)) {
+    if (!validSessionId(sessionId)) {
       return res.status(400).json({
         success: false,
+        code: "INVALID_SESSION_ID",
         message: "Session identifier is invalid.",
+        requestId: req.requestId,
       });
     }
 
@@ -248,15 +458,12 @@ const revokeSession = async (req, res) => {
         : "The selected device has been signed out.",
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "The selected session could not be revoked.",
-    });
+    next(error);
   }
 };
 
 // POST /api/auth/sessions/logout-others
-const logoutOtherSessions = async (req, res) => {
+const logoutOtherSessions = async (req, res, next) => {
   try {
     const currentSessionId = req.authSession?.sessionId;
 
@@ -288,15 +495,12 @@ const logoutOtherSessions = async (req, res) => {
       message: `${result.modifiedCount} other session(s) signed out.`,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Other sessions could not be signed out.",
-    });
+    next(error);
   }
 };
 
 // POST /api/auth/sessions/logout-all
-const logoutAllSessions = async (req, res) => {
+const logoutAllSessions = async (req, res, next) => {
   try {
     const result = await Session.updateMany(
       {
@@ -317,10 +521,7 @@ const logoutAllSessions = async (req, res) => {
       message: "All devices have been signed out.",
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "All sessions could not be signed out.",
-    });
+    next(error);
   }
 };
 
@@ -328,6 +529,9 @@ module.exports = {
   startSession,
   refreshSession,
   listSessions,
+  updateTrustedSession,
+  reportSessionNotMine,
+  revokeFromSecurityAlert,
   revokeCurrentSession,
   revokeSession,
   logoutOtherSessions,
