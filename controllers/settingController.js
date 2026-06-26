@@ -50,7 +50,7 @@ const getOrCreateSettings = async (user) => {
 };
 
 // GET /api/settings
-const getSettings = async (req, res) => {
+const getSettings = async (req, res, next) => {
   try {
     const settings = await getOrCreateSettings(req.user);
 
@@ -59,15 +59,12 @@ const getSettings = async (req, res) => {
       data: settings,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
 // PUT /api/settings
-const updateSettings = async (req, res) => {
+const updateSettings = async (req, res, next) => {
   try {
     const updates = pickAllowedFields(req.body);
 
@@ -77,7 +74,9 @@ const updateSettings = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Starting balance cannot be negative",
+        code: "INVALID_STARTING_BALANCE",
+        message: "Starting balance cannot be negative.",
+        requestId: req.requestId,
       });
     }
 
@@ -87,23 +86,22 @@ const updateSettings = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Target balance cannot be negative",
+        code: "INVALID_TARGET_BALANCE",
+        message: "Target balance cannot be negative.",
+        requestId: req.requestId,
       });
     }
 
-    const settings = await Setting.findOneAndUpdate(
-      { user: req.user._id },
-      {
-        $set: updates,
-        $setOnInsert: createDefaultSettings(req.user),
-      },
-      {
-        new: true,
-        upsert: true,
-        runValidators: true,
-        setDefaultsOnInsert: true,
-      }
-    );
+    // Avoid MongoDB's "$set + $setOnInsert" path conflict when fields such as
+    // fullName or email are included in both objects. Load/create the user's
+    // settings document first, then apply only the requested fields and save.
+    const settings = await getOrCreateSettings(req.user);
+
+    for (const [field, value] of Object.entries(updates)) {
+      settings[field] = value;
+    }
+
+    await settings.save();
 
     res.status(200).json({
       success: true,
@@ -111,15 +109,12 @@ const updateSettings = async (req, res) => {
       data: settings,
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
 // POST /api/settings/reset
-const resetSettings = async (req, res) => {
+const resetSettings = async (req, res, next) => {
   try {
     await Setting.deleteOne({ user: req.user._id });
     const settings = await Setting.create(createDefaultSettings(req.user));
@@ -130,10 +125,7 @@ const resetSettings = async (req, res) => {
       data: settings,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
