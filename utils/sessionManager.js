@@ -310,6 +310,29 @@ const rotateRefreshToken = async ({ session, user, req }) => {
   };
 };
 
+
+const revokeAllUserSessions = async (
+  userId,
+  reason = "account-security-change"
+) => {
+  if (!userId) return 0;
+
+  const result = await Session.updateMany(
+    {
+      user: userId,
+      revokedAt: null,
+    },
+    {
+      $set: {
+        revokedAt: new Date(),
+        revokeReason: String(reason || "account-security-change").slice(0, 120),
+      },
+    }
+  );
+
+  return result.modifiedCount;
+};
+
 module.exports = {
   ACCESS_TOKEN_SECONDS,
   REFRESH_SESSION_DAYS,
@@ -320,5 +343,6 @@ module.exports = {
   createAccessToken,
   rotateRefreshToken,
   revokeSessionDocument,
+  revokeAllUserSessions,
   getSessionMetadata,
 };

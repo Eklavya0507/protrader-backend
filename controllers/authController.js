@@ -4,10 +4,88 @@ const { OAuth2Client } = require("google-auth-library");
 
 const User = require("../models/User");
 const { sendEmail } = require("../utils/sendEmail");
+const { revokeAllUserSessions } = require("../utils/sessionManager");
 
 const RESET_TOKEN_MINUTES = 15;
 const EMAIL_VERIFICATION_HOURS = 24;
 const AUTH_FLOW_SESSION_MINUTES = 30;
+
+const positiveInteger = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const MAX_FAILED_LOGIN_ATTEMPTS = positiveInteger(
+  process.env.MAX_FAILED_LOGIN_ATTEMPTS,
+  5
+);
+
+const LOGIN_LOCK_MINUTES = positiveInteger(
+  process.env.LOGIN_LOCK_MINUTES,
+  15
+);
+
+const loginLockDurationMs = () => LOGIN_LOCK_MINUTES * 60 * 1000;
+
+const activeLoginLockSeconds = (user) => {
+  const lockUntil = user?.loginLockUntil;
+
+  if (!(lockUntil instanceof Date) || lockUntil.getTime() <= Date.now()) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((lockUntil.getTime() - Date.now()) / 1000));
+};
+
+const normalizeExpiredLoginLock = (user) => {
+  if (
+    user?.loginLockUntil instanceof Date &&
+    user.loginLockUntil.getTime() <= Date.now()
+  ) {
+    user.loginFailedAttempts = 0;
+    user.loginLockUntil = null;
+  }
+};
+
+const recordFailedPasswordAttempt = async (user) => {
+  normalizeExpiredLoginLock(user);
+
+  user.loginFailedAttempts = Number(user.loginFailedAttempts || 0) + 1;
+
+  let locked = false;
+
+  if (user.loginFailedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+    user.loginFailedAttempts = MAX_FAILED_LOGIN_ATTEMPTS;
+    user.loginLockUntil = new Date(Date.now() + loginLockDurationMs());
+    locked = true;
+  }
+
+  await user.save({ validateBeforeSave: false });
+
+  return {
+    locked,
+    attemptsRemaining: Math.max(
+      0,
+      MAX_FAILED_LOGIN_ATTEMPTS - user.loginFailedAttempts
+    ),
+    retryAfterSeconds: activeLoginLockSeconds(user),
+  };
+};
+
+const clearLoginProtection = (user) => {
+  user.loginFailedAttempts = 0;
+  user.loginLockUntil = null;
+};
+
+const revokeSessionsAfterSecurityChange = async (userId, reason) => {
+  try {
+    await revokeAllUserSessions(userId, reason);
+  } catch (error) {
+    // tokenVersion still invalidates old access/refresh tokens even if this
+    // cleanup write temporarily fails.
+    console.warn("Session revocation cleanup failed:", error.message);
+  }
+};
 
 const hashSecret = (value) =>
   crypto.createHash("sha256").update(value).digest("hex");
@@ -373,12 +451,30 @@ const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select(
+      "+password +loginFailedAttempts +loginLockUntil"
+    );
 
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "Incorrect email or password.",
+      });
+    }
+
+    normalizeExpiredLoginLock(user);
+
+    const retryAfterSeconds = activeLoginLockSeconds(user);
+
+    if (retryAfterSeconds > 0) {
+      res.set("Retry-After", String(retryAfterSeconds));
+
+      return res.status(429).json({
+        success: false,
+        code: "LOGIN_TEMPORARILY_LOCKED",
+        message:
+          "Too many unsuccessful sign-in attempts. Try again later or reset your password.",
+        retryAfterSeconds,
       });
     }
 
@@ -391,13 +487,35 @@ const login = async (req, res) => {
     }
 
     if (!(await user.comparePassword(password))) {
+      const result = await recordFailedPasswordAttempt(user);
+
+      if (result.locked) {
+        res.set("Retry-After", String(result.retryAfterSeconds));
+
+        return res.status(429).json({
+          success: false,
+          code: "LOGIN_TEMPORARILY_LOCKED",
+          message:
+            "Too many unsuccessful sign-in attempts. Try again later or reset your password.",
+          retryAfterSeconds: result.retryAfterSeconds,
+        });
+      }
+
       return res.status(401).json({
         success: false,
+        code: "INVALID_CREDENTIALS",
         message: "Incorrect email or password.",
+        attemptsRemaining: result.attemptsRemaining,
       });
     }
 
+    // A correct password clears earlier failures, even when the account still
+    // needs email verification.
+    clearLoginProtection(user);
+
     if (!user.isActive) {
+      await user.save({ validateBeforeSave: false });
+
       return res.status(403).json({
         success: false,
         message: "This account is disabled.",
@@ -405,6 +523,8 @@ const login = async (req, res) => {
     }
 
     if (user.isEmailVerified === false) {
+      await user.save({ validateBeforeSave: false });
+
       return res.status(403).json({
         success: false,
         code: "EMAIL_NOT_VERIFIED",
@@ -417,6 +537,8 @@ const login = async (req, res) => {
     user.lastLoginAt = new Date();
     await user.save({ validateBeforeSave: false });
 
+    req.resetLoginRateLimit?.();
+
     const token = createToken(user);
 
     res.status(200).json({
@@ -428,7 +550,7 @@ const login = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Sign-in could not be completed.",
     });
   }
 };
@@ -482,6 +604,7 @@ const googleLogin = async (req, res) => {
       user.isEmailVerified = true;
       user.emailVerificationToken = null;
       user.emailVerificationExpires = null;
+      clearLoginProtection(user);
       user.lastLoginAt = new Date();
 
       if (!user.name && googleProfile.name) {
@@ -497,6 +620,8 @@ const googleLogin = async (req, res) => {
         avatarUrl: googleProfile.avatarUrl,
         authProvider: "google",
         isEmailVerified: true,
+        loginFailedAttempts: 0,
+        loginLockUntil: null,
         lastLoginAt: new Date(),
       });
 
@@ -880,7 +1005,13 @@ const changePassword = async (req, res) => {
     user.passwordResetSessionToken = null;
     user.passwordResetSessionExpires = null;
     user.passwordResetSessionCompletedAt = null;
+    clearLoginProtection(user);
     await user.save();
+
+    await revokeSessionsAfterSecurityChange(
+      user._id,
+      "password-changed"
+    );
 
     const token = createToken(user);
 
@@ -1087,7 +1218,13 @@ const resetPassword = async (req, res) => {
       user.lastLoginAt = new Date();
     }
 
+    clearLoginProtection(user);
     await user.save();
+
+    await revokeSessionsAfterSecurityChange(
+      user._id,
+      "password-reset"
+    );
 
     const response = {
       success: true,

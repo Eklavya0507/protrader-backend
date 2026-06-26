@@ -27,11 +27,12 @@ const {
 } = require("../controllers/sessionController");
 
 const { protect } = require("../middleware/authMiddleware");
+const { loginRateLimiter } = require("../middleware/loginRateLimiter");
 
 const router = express.Router();
 
 router.post("/register", register);
-router.post("/login", login);
+router.post("/login", loginRateLimiter, login);
 router.post("/google", googleLogin);
 router.post("/verify-email", verifyEmail);
 router.post("/verification-status", verificationStatus);

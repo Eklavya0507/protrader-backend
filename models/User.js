@@ -96,6 +96,21 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+
+    // Password sign-in protection. These fields are hidden from normal queries.
+    loginFailedAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+      select: false,
+    },
+
+    loginLockUntil: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
     lastLoginAt: {
       type: Date,
       default: null,
