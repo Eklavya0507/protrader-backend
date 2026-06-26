@@ -1,0 +1,1351 @@
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
+
+const User = require("../models/User");
+const { sendEmail } = require("../utils/sendEmail");
+const { revokeAllUserSessions } = require("../utils/sessionManager");
+
+const RESET_TOKEN_MINUTES = 15;
+const EMAIL_VERIFICATION_HOURS = 24;
+const AUTH_FLOW_SESSION_MINUTES = 30;
+
+const positiveInteger = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const MAX_FAILED_LOGIN_ATTEMPTS = positiveInteger(
+  process.env.MAX_FAILED_LOGIN_ATTEMPTS,
+  5
+);
+
+const LOGIN_LOCK_MINUTES = positiveInteger(
+  process.env.LOGIN_LOCK_MINUTES,
+  15
+);
+
+const loginLockDurationMs = () => LOGIN_LOCK_MINUTES * 60 * 1000;
+
+const activeLoginLockSeconds = (user) => {
+  const lockUntil = user?.loginLockUntil;
+
+  if (!(lockUntil instanceof Date) || lockUntil.getTime() <= Date.now()) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((lockUntil.getTime() - Date.now()) / 1000));
+};
+
+const normalizeExpiredLoginLock = (user) => {
+  if (
+    user?.loginLockUntil instanceof Date &&
+    user.loginLockUntil.getTime() <= Date.now()
+  ) {
+    user.loginFailedAttempts = 0;
+    user.loginLockUntil = null;
+  }
+};
+
+const recordFailedPasswordAttempt = async (user) => {
+  normalizeExpiredLoginLock(user);
+
+  user.loginFailedAttempts = Number(user.loginFailedAttempts || 0) + 1;
+
+  let locked = false;
+
+  if (user.loginFailedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+    user.loginFailedAttempts = MAX_FAILED_LOGIN_ATTEMPTS;
+    user.loginLockUntil = new Date(Date.now() + loginLockDurationMs());
+    locked = true;
+  }
+
+  await user.save({ validateBeforeSave: false });
+
+  return {
+    locked,
+    attemptsRemaining: Math.max(
+      0,
+      MAX_FAILED_LOGIN_ATTEMPTS - user.loginFailedAttempts
+    ),
+    retryAfterSeconds: activeLoginLockSeconds(user),
+  };
+};
+
+const clearLoginProtection = (user) => {
+  user.loginFailedAttempts = 0;
+  user.loginLockUntil = null;
+};
+
+const revokeSessionsAfterSecurityChange = async (userId, reason) => {
+  try {
+    await revokeAllUserSessions(userId, reason);
+  } catch (error) {
+    // tokenVersion still invalidates old access/refresh tokens even if this
+    // cleanup write temporarily fails.
+    console.warn("Session revocation cleanup failed:", error.message);
+  }
+};
+
+const hashSecret = (value) =>
+  crypto.createHash("sha256").update(value).digest("hex");
+
+const normalizeFlowSessionId = (value) => {
+  const sessionId = String(value || "").trim().toLowerCase();
+  return /^[a-f0-9]{64}$/.test(sessionId) ? sessionId : "";
+};
+
+const hasActiveDate = (value) =>
+  value instanceof Date && value.getTime() > Date.now();
+
+const getGoogleClient = () => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    throw new Error("GOOGLE_CLIENT_ID is missing from environment variables");
+  }
+
+  return new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+};
+
+const verifyGoogleCredential = async (credential) => {
+  const ticket = await getGoogleClient().verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+
+  if (
+    !payload ||
+    !payload.sub ||
+    !payload.email ||
+    payload.email_verified !== true
+  ) {
+    throw new Error("Google account could not be verified.");
+  }
+
+  return {
+    googleId: payload.sub,
+    email: String(payload.email).trim().toLowerCase(),
+    name: String(payload.name || payload.given_name || "Google User").trim(),
+    avatarUrl: String(payload.picture || "").trim(),
+  };
+};
+
+
+const publicUser = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  isActive: user.isActive,
+  isEmailVerified: user.isEmailVerified === true,
+  lastLoginAt: user.lastLoginAt,
+  createdAt: user.createdAt,
+  authProvider: user.authProvider,
+  avatarUrl: user.avatarUrl || "",
+  updatedAt: user.updatedAt,
+});
+
+const createToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is missing from environment variables");
+  }
+
+  return jwt.sign(
+    {
+      id: user._id,
+      tokenVersion: user.tokenVersion || 0,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    }
+  );
+};
+
+const validateStrongPassword = (password, label = "Password") => {
+  if (password.length < 8) {
+    return `${label} must contain at least 8 characters.`;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return `${label} must contain at least one uppercase letter.`;
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return `${label} must contain at least one lowercase letter.`;
+  }
+
+  if (!/\d/.test(password)) {
+    return `${label} must contain at least one number.`;
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return `${label} must contain at least one special character.`;
+  }
+
+  return null;
+};
+
+const normalizeFrontendUrl = () =>
+  String(
+    process.env.FRONTEND_URL ||
+      "https://eklavya0507.github.io/protrader"
+  ).replace(/\/+$/, "");
+
+const createResetEmail = ({ user, resetUrl }) => {
+  const subject = "Reset your ProTrade password";
+
+  const text = [
+    `Hello ${user.name},`,
+    "",
+    "We received a request to reset your ProTrade password.",
+    `Open this link within ${RESET_TOKEN_MINUTES} minutes:`,
+    resetUrl,
+    "",
+    "If the reset was requested on another device, keep that page open. It will update automatically after the password is changed.",
+    "",
+    "If you did not request this change, you can ignore this email.",
+  ].join("\n");
+
+  const html = `
+    <div style="margin:0;padding:30px;background:#0b0f10;font-family:Arial,sans-serif;color:#edf2f5">
+      <div style="max-width:600px;margin:0 auto;background:#151a1d;border:1px solid #30383d;border-radius:20px;overflow:hidden">
+        <div style="padding:24px 28px;border-bottom:1px solid #30383d">
+          <div style="font-size:24px;font-weight:800;color:#aec3ff">ProTrade</div>
+          <div style="margin-top:4px;font-size:11px;letter-spacing:2px;color:#9da8af">ACCOUNT SECURITY</div>
+        </div>
+        <div style="padding:28px">
+          <h1 style="margin:0 0 12px;font-size:24px">Reset your password</h1>
+          <p style="margin:0 0 16px;line-height:1.7;color:#b8c1c6">
+            Hello ${user.name}, we received a request to reset your ProTrade password.
+          </p>
+          <p style="margin:0 0 22px;line-height:1.7;color:#b8c1c6">
+            This secure link expires in ${RESET_TOKEN_MINUTES} minutes.
+          </p>
+          <a href="${resetUrl}"
+             style="display:inline-block;padding:14px 20px;border-radius:12px;background:#7da1ff;color:#14203b;text-decoration:none;font-weight:800">
+            Reset Password
+          </a>
+          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#a9c2ff">
+            Requested this on another device? Keep that page open. It will update automatically after you change the password here.
+          </p>
+          <p style="margin:14px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
+            If you did not request this password reset, ignore this email. Your current password will remain unchanged.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return { subject, text, html };
+};
+
+
+const createEmailVerificationContent = ({ user, verificationUrl }) => {
+  const subject = "Verify your ProTrade email";
+
+  const text = [
+    `Hello ${user.name},`,
+    "",
+    "Verify your email address to activate your ProTrade account.",
+    `This link expires in ${EMAIL_VERIFICATION_HOURS} hours:`,
+    verificationUrl,
+    "",
+    "If you registered on another device, keep that page open. It will sign in automatically after verification.",
+    "",
+    "If you did not create this account, you can ignore this email.",
+  ].join("\n");
+
+  const html = `
+    <div style="margin:0;padding:30px;background:#0b0f10;font-family:Arial,sans-serif;color:#edf2f5">
+      <div style="max-width:600px;margin:0 auto;background:#151a1d;border:1px solid #30383d;border-radius:20px;overflow:hidden">
+        <div style="padding:24px 28px;border-bottom:1px solid #30383d">
+          <div style="font-size:24px;font-weight:800;color:#aec3ff">ProTrade</div>
+          <div style="margin-top:4px;font-size:11px;letter-spacing:2px;color:#9da8af">EMAIL VERIFICATION</div>
+        </div>
+        <div style="padding:28px">
+          <h1 style="margin:0 0 12px;font-size:24px">Verify your email</h1>
+          <p style="margin:0 0 16px;line-height:1.7;color:#b8c1c6">
+            Hello ${user.name}, confirm this email address to activate your private ProTrade workspace.
+          </p>
+          <p style="margin:0 0 22px;line-height:1.7;color:#b8c1c6">
+            This secure link expires in ${EMAIL_VERIFICATION_HOURS} hours.
+          </p>
+          <a href="${verificationUrl}"
+             style="display:inline-block;padding:14px 20px;border-radius:12px;background:#7da1ff;color:#14203b;text-decoration:none;font-weight:800">
+            Verify Email
+          </a>
+          <p style="margin:24px 0 0;line-height:1.6;font-size:13px;color:#a9c2ff">
+            Registered on another device? Keep that page open. It will continue automatically after you verify here.
+          </p>
+          <p style="margin:14px 0 0;line-height:1.6;font-size:13px;color:#8f9aa1">
+            If you did not create a ProTrade account, ignore this message.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return { subject, text, html };
+};
+
+const sendEmailVerification = async (
+  user,
+  { verificationSessionId = "" } = {}
+) => {
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  const normalizedSessionId = normalizeFlowSessionId(
+    verificationSessionId
+  );
+
+  user.emailVerificationToken = hashSecret(verificationToken);
+  user.emailVerificationExpires = new Date(
+    Date.now() + EMAIL_VERIFICATION_HOURS * 60 * 60 * 1000
+  );
+
+  if (normalizedSessionId) {
+    user.emailVerificationSessionToken = hashSecret(
+      normalizedSessionId
+    );
+    user.emailVerificationSessionExpires = new Date(
+      Date.now() + AUTH_FLOW_SESSION_MINUTES * 60 * 1000
+    );
+  }
+
+  await user.save({ validateBeforeSave: false });
+
+  const verificationUrl =
+    `${normalizeFrontendUrl()}/verify-email.html` +
+    `?token=${encodeURIComponent(verificationToken)}` +
+    `&email=${encodeURIComponent(user.email)}`;
+
+  const emailContent = createEmailVerificationContent({
+    user,
+    verificationUrl,
+  });
+
+  await sendEmail({
+    to: user.email,
+    ...emailContent,
+  });
+};
+
+// POST /api/auth/register
+const register = async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+    const rawVerificationSessionId = String(
+      req.body.verificationSessionId || ""
+    ).trim();
+    const verificationSessionId = normalizeFlowSessionId(
+      rawVerificationSessionId
+    );
+
+    if (
+      rawVerificationSessionId &&
+      !verificationSessionId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification session is invalid. Refresh and try again.",
+      });
+    }
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email and password are required.",
+      });
+    }
+
+    const passwordError = validateStrongPassword(password);
+
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError,
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        code:
+          existingUser.isEmailVerified === false
+            ? "EMAIL_NOT_VERIFIED"
+            : "ACCOUNT_EXISTS",
+        message:
+          existingUser.isEmailVerified === false
+            ? "This account exists but its email is not verified. Request a new verification email."
+            : "An account with this email already exists.",
+        email,
+      });
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      authProvider: "local",
+      isEmailVerified: false,
+    });
+
+    try {
+      await sendEmailVerification(user, {
+        verificationSessionId,
+      });
+    } catch (emailError) {
+      console.error(
+        "Verification email failed:",
+        emailError.message
+      );
+
+      return res.status(503).json({
+        success: false,
+        code: "VERIFICATION_EMAIL_FAILED",
+        message:
+          "Account created, but the verification email could not be sent. Use Resend Verification.",
+        email: user.email,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      requiresEmailVerification: true,
+      message:
+        "Account created. Check your email to verify your ProTrade account.",
+      email: user.email,
+      waitingSessionExpiresInSeconds:
+        AUTH_FLOW_SESSION_MINUTES * 60,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists.",
+      });
+    }
+
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/login
+const login = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required.",
+      });
+    }
+
+    const user = await User.findOne({ email }).select(
+      "+password +loginFailedAttempts +loginLockUntil"
+    );
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect email or password.",
+      });
+    }
+
+    normalizeExpiredLoginLock(user);
+
+    const retryAfterSeconds = activeLoginLockSeconds(user);
+
+    if (retryAfterSeconds > 0) {
+      res.set("Retry-After", String(retryAfterSeconds));
+
+      return res.status(429).json({
+        success: false,
+        code: "LOGIN_TEMPORARILY_LOCKED",
+        message:
+          "Too many unsuccessful sign-in attempts. Try again later or reset your password.",
+        retryAfterSeconds,
+      });
+    }
+
+    if (!user.password) {
+      return res.status(401).json({
+        success: false,
+        message:
+          "This account uses Google Sign-In. Continue with Google or use Forgot password to create a password.",
+      });
+    }
+
+    if (!(await user.comparePassword(password))) {
+      const result = await recordFailedPasswordAttempt(user);
+
+      if (result.locked) {
+        res.set("Retry-After", String(result.retryAfterSeconds));
+
+        return res.status(429).json({
+          success: false,
+          code: "LOGIN_TEMPORARILY_LOCKED",
+          message:
+            "Too many unsuccessful sign-in attempts. Try again later or reset your password.",
+          retryAfterSeconds: result.retryAfterSeconds,
+        });
+      }
+
+      return res.status(401).json({
+        success: false,
+        code: "INVALID_CREDENTIALS",
+        message: "Incorrect email or password.",
+        attemptsRemaining: result.attemptsRemaining,
+      });
+    }
+
+    // A correct password clears earlier failures, even when the account still
+    // needs email verification.
+    clearLoginProtection(user);
+
+    if (!user.isActive) {
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(403).json({
+        success: false,
+        message: "This account is disabled.",
+      });
+    }
+
+    if (user.isEmailVerified === false) {
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(403).json({
+        success: false,
+        code: "EMAIL_NOT_VERIFIED",
+        message:
+          "Verify your email before signing in. You can request a new verification email.",
+        email: user.email,
+      });
+    }
+
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    req.resetLoginRateLimit?.();
+
+    const token = createToken(user);
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Sign-in could not be completed.",
+    });
+  }
+};
+
+
+// POST /api/auth/google
+const googleLogin = async (req, res) => {
+  try {
+    const credential = String(req.body.credential || "").trim();
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: "Google credential is required.",
+      });
+    }
+
+    const googleProfile = await verifyGoogleCredential(credential);
+
+    let user = await User.findOne({
+      $or: [
+        { googleId: googleProfile.googleId },
+        { email: googleProfile.email },
+      ],
+    }).select("+password");
+
+    let isNewAccount = false;
+
+    if (user) {
+      if (!user.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: "This account is disabled.",
+        });
+      }
+
+      if (
+        user.googleId &&
+        user.googleId !== googleProfile.googleId
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This email is already linked to a different Google identity.",
+        });
+      }
+
+      user.googleId = googleProfile.googleId;
+      user.avatarUrl = googleProfile.avatarUrl || user.avatarUrl;
+      user.authProvider = user.password ? "both" : "google";
+      user.isEmailVerified = true;
+      user.emailVerificationToken = null;
+      user.emailVerificationExpires = null;
+      clearLoginProtection(user);
+      user.lastLoginAt = new Date();
+
+      if (!user.name && googleProfile.name) {
+        user.name = googleProfile.name;
+      }
+
+      await user.save({ validateBeforeSave: false });
+    } else {
+      user = await User.create({
+        name: googleProfile.name,
+        email: googleProfile.email,
+        googleId: googleProfile.googleId,
+        avatarUrl: googleProfile.avatarUrl,
+        authProvider: "google",
+        isEmailVerified: true,
+        loginFailedAttempts: 0,
+        loginLockUntil: null,
+        lastLoginAt: new Date(),
+      });
+
+      isNewAccount = true;
+    }
+
+    const token = createToken(user);
+
+    res.status(isNewAccount ? 201 : 200).json({
+      success: true,
+      message: isNewAccount
+        ? "Google account connected and ProTrade account created."
+        : "Google sign-in successful.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    console.error("Google sign-in failed:", error.message);
+
+    res.status(401).json({
+      success: false,
+      message:
+        "Google sign-in could not be verified. Please try again.",
+    });
+  }
+};
+
+
+// POST /api/auth/verify-email
+const verifyEmail = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const verificationToken = String(req.body.token || "").trim();
+
+    if (!email || !verificationToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and verification token are required.",
+      });
+    }
+
+    const hashedToken = hashSecret(verificationToken);
+
+    const user = await User.findOne({
+      email,
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() },
+      isActive: true,
+    }).select(
+      [
+        "+emailVerificationToken",
+        "+emailVerificationExpires",
+        "+emailVerificationSessionToken",
+        "+emailVerificationSessionExpires",
+      ].join(" ")
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_VERIFICATION_LINK",
+        message:
+          "This verification link is invalid or expired. Request a new email.",
+      });
+    }
+
+    const waitingOnOriginalDevice =
+      Boolean(user.emailVerificationSessionToken) &&
+      hasActiveDate(user.emailVerificationSessionExpires);
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationExpires = null;
+
+    if (!waitingOnOriginalDevice) {
+      user.emailVerificationSessionToken = null;
+      user.emailVerificationSessionExpires = null;
+      user.lastLoginAt = new Date();
+    }
+
+    await user.save({ validateBeforeSave: false });
+
+    const response = {
+      success: true,
+      message: waitingOnOriginalDevice
+        ? "Email verified successfully. Return to your original device."
+        : "Email verified successfully.",
+      continueOnOriginalDevice: waitingOnOriginalDevice,
+      data: publicUser(user),
+    };
+
+    if (!waitingOnOriginalDevice) {
+      response.token = createToken(user);
+    }
+
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/verification-status
+const verificationStatus = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const rawSessionId = String(req.body.sessionId || "").trim();
+    const sessionId = normalizeFlowSessionId(rawSessionId);
+
+    if (!email || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and verification session are required.",
+      });
+    }
+
+    const user = await User.findOne({
+      email,
+      isActive: true,
+      emailVerificationSessionToken: hashSecret(sessionId),
+    }).select(
+      "+emailVerificationSessionToken +emailVerificationSessionExpires"
+    );
+
+    // A generic pending response avoids confirming whether an account exists.
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        verified: false,
+      });
+    }
+
+    if (!hasActiveDate(user.emailVerificationSessionExpires)) {
+      user.emailVerificationSessionToken = null;
+      user.emailVerificationSessionExpires = null;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        status: "expired",
+        verified: false,
+        message:
+          "This waiting session expired. Request a new verification email.",
+      });
+    }
+
+    if (user.isEmailVerified !== true) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        verified: false,
+      });
+    }
+
+    user.emailVerificationSessionToken = null;
+    user.emailVerificationSessionExpires = null;
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      status: "verified",
+      verified: true,
+      message: "Email verified. Opening your private workspace.",
+      token: createToken(user),
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Verification status could not be checked.",
+    });
+  }
+};
+
+// POST /api/auth/resend-verification
+const resendVerification = async (req, res) => {
+  const genericResponse = {
+    success: true,
+    message:
+      "If an unverified account exists for that email, a new verification link has been sent.",
+  };
+
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const rawVerificationSessionId = String(
+      req.body.verificationSessionId || ""
+    ).trim();
+    const verificationSessionId = normalizeFlowSessionId(
+      rawVerificationSessionId
+    );
+
+    if (
+      rawVerificationSessionId &&
+      !verificationSessionId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification session is invalid. Refresh and try again.",
+      });
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required.",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (
+      !user ||
+      !user.isActive ||
+      user.isEmailVerified === true
+    ) {
+      return res.status(200).json(genericResponse);
+    }
+
+    try {
+      await sendEmailVerification(user, {
+        verificationSessionId,
+      });
+    } catch (emailError) {
+      console.error(
+        "Verification email resend failed:",
+        emailError.message
+      );
+
+      return res.status(503).json({
+        success: false,
+        message:
+          "Verification email could not be sent. Please try again later.",
+      });
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Verification email could not be requested.",
+    });
+  }
+};
+
+// GET /api/auth/me
+const getMe = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: publicUser(req.user),
+  });
+};
+
+// PUT /api/auth/me
+const updateMe = async (req, res) => {
+  try {
+    const updates = {};
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "name")) {
+      const name = String(req.body.name || "").trim();
+
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: "Name cannot be empty.",
+        });
+      }
+
+      updates.name = name;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
+      const email = String(req.body.email || "").trim().toLowerCase();
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: "Email cannot be empty.",
+        });
+      }
+
+      const existingUser = await User.findOne({
+        email,
+        _id: { $ne: req.user._id },
+      });
+
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          message: "Another account already uses this email.",
+        });
+      }
+
+      updates.email = email;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully.",
+      data: publicUser(user),
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Another account already uses this email.",
+      });
+    }
+
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// PUT /api/auth/change-password
+const changePassword = async (req, res) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    const confirmPassword = String(req.body.confirmPassword || "");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Current password, new password and confirmation are required.",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and confirmation do not match.",
+      });
+    }
+
+    const passwordError = validateStrongPassword(
+      newPassword,
+      "New password"
+    );
+
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError,
+      });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect.",
+      });
+    }
+
+    if (await user.comparePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from the current password.",
+      });
+    }
+
+    user.password = newPassword;
+    user.authProvider = user.googleId ? "both" : "local";
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    user.passwordResetSessionToken = null;
+    user.passwordResetSessionExpires = null;
+    user.passwordResetSessionCompletedAt = null;
+    clearLoginProtection(user);
+    await user.save();
+
+    await revokeSessionsAfterSecurityChange(
+      user._id,
+      "password-changed"
+    );
+
+    const token = createToken(user);
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Password changed successfully. Other signed-in sessions have been invalidated.",
+      token,
+      data: publicUser(user),
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  const genericResponse = {
+    success: true,
+    message:
+      "If an account exists for that email, a password reset link has been sent.",
+    waitingSessionExpiresInSeconds: RESET_TOKEN_MINUTES * 60,
+  };
+
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const rawPasswordResetSessionId = String(
+      req.body.passwordResetSessionId || ""
+    ).trim();
+    const passwordResetSessionId = normalizeFlowSessionId(
+      rawPasswordResetSessionId
+    );
+
+    if (
+      rawPasswordResetSessionId &&
+      !passwordResetSessionId
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Password reset session is invalid. Refresh and try again.",
+      });
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required.",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Prevent account enumeration.
+    if (!user || !user.isActive) {
+      return res.status(200).json(genericResponse);
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.passwordResetToken = hashSecret(resetToken);
+    user.passwordResetExpires = new Date(
+      Date.now() + RESET_TOKEN_MINUTES * 60 * 1000
+    );
+
+    if (passwordResetSessionId) {
+      user.passwordResetSessionToken = hashSecret(
+        passwordResetSessionId
+      );
+      user.passwordResetSessionExpires = new Date(
+        Date.now() + RESET_TOKEN_MINUTES * 60 * 1000
+      );
+      user.passwordResetSessionCompletedAt = null;
+    }
+
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl =
+      `${normalizeFrontendUrl()}/reset-password.html` +
+      `?token=${encodeURIComponent(resetToken)}` +
+      `&email=${encodeURIComponent(user.email)}`;
+
+    const emailContent = createResetEmail({ user, resetUrl });
+
+    try {
+      await sendEmail({
+        to: user.email,
+        ...emailContent,
+      });
+    } catch (emailError) {
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      user.passwordResetSessionToken = null;
+      user.passwordResetSessionExpires = null;
+      user.passwordResetSessionCompletedAt = null;
+      await user.save({ validateBeforeSave: false });
+
+      console.error("Password reset email failed:", emailError.message);
+
+      return res.status(503).json({
+        success: false,
+        message:
+          "Password reset email could not be sent. Please try again later.",
+      });
+    }
+
+    res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error("Forgot password error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Password reset could not be started.",
+    });
+  }
+};
+
+// POST /api/auth/reset-password
+const resetPassword = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const resetToken = String(req.body.token || "");
+    const newPassword = String(req.body.newPassword || "");
+    const confirmPassword = String(req.body.confirmPassword || "");
+
+    if (!email || !resetToken || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Email, reset token, new password and confirmation are required.",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and confirmation do not match.",
+      });
+    }
+
+    const passwordError = validateStrongPassword(
+      newPassword,
+      "New password"
+    );
+
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError,
+      });
+    }
+
+    const hashedResetToken = hashSecret(resetToken);
+
+    const user = await User.findOne({
+      email,
+      passwordResetToken: hashedResetToken,
+      passwordResetExpires: { $gt: new Date() },
+      isActive: true,
+    }).select(
+      [
+        "+password",
+        "+passwordResetToken",
+        "+passwordResetExpires",
+        "+passwordResetSessionToken",
+        "+passwordResetSessionExpires",
+        "+passwordResetSessionCompletedAt",
+      ].join(" ")
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This reset link is invalid or has expired. Request a new link.",
+      });
+    }
+
+    if (await user.comparePassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from the current password.",
+      });
+    }
+
+    const waitingOnOriginalDevice =
+      Boolean(user.passwordResetSessionToken) &&
+      hasActiveDate(user.passwordResetSessionExpires);
+
+    user.password = newPassword;
+    user.authProvider = user.googleId ? "both" : "local";
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+
+    if (waitingOnOriginalDevice) {
+      user.passwordResetSessionCompletedAt = new Date();
+    } else {
+      user.passwordResetSessionToken = null;
+      user.passwordResetSessionExpires = null;
+      user.passwordResetSessionCompletedAt = null;
+      user.lastLoginAt = new Date();
+    }
+
+    clearLoginProtection(user);
+    await user.save();
+
+    await revokeSessionsAfterSecurityChange(
+      user._id,
+      "password-reset"
+    );
+
+    const response = {
+      success: true,
+      message: waitingOnOriginalDevice
+        ? "Password reset successfully. Return to your original device."
+        : "Password reset successfully. Older login sessions have been invalidated.",
+      continueOnOriginalDevice: waitingOnOriginalDevice,
+      data: publicUser(user),
+    };
+
+    if (!waitingOnOriginalDevice) {
+      response.token = createToken(user);
+    }
+
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// POST /api/auth/password-reset-status
+const passwordResetStatus = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const rawSessionId = String(req.body.sessionId || "").trim();
+    const sessionId = normalizeFlowSessionId(rawSessionId);
+
+    if (!email || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password reset session are required.",
+      });
+    }
+
+    const user = await User.findOne({
+      email,
+      isActive: true,
+      passwordResetSessionToken: hashSecret(sessionId),
+    }).select(
+      [
+        "+passwordResetSessionToken",
+        "+passwordResetSessionExpires",
+        "+passwordResetSessionCompletedAt",
+      ].join(" ")
+    );
+
+    // Keep the response generic when the email/session pair does not match.
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        completed: false,
+      });
+    }
+
+    if (!hasActiveDate(user.passwordResetSessionExpires)) {
+      user.passwordResetSessionToken = null;
+      user.passwordResetSessionExpires = null;
+      user.passwordResetSessionCompletedAt = null;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        status: "expired",
+        completed: false,
+        message:
+          "This waiting session expired. Request a new password reset email.",
+      });
+    }
+
+    if (!user.passwordResetSessionCompletedAt) {
+      return res.status(200).json({
+        success: true,
+        status: "pending",
+        completed: false,
+      });
+    }
+
+    user.passwordResetSessionToken = null;
+    user.passwordResetSessionExpires = null;
+    user.passwordResetSessionCompletedAt = null;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      status: "completed",
+      completed: true,
+      message:
+        "Password changed successfully. Sign in with your new password.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Password reset status could not be checked.",
+    });
+  }
+};
+
+// POST /api/auth/logout
+const logout = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Logout successful. Remove the token from the client.",
+  });
+};
+
+module.exports = {
+  register,
+  login,
+  googleLogin,
+  verifyEmail,
+  verificationStatus,
+  resendVerification,
+  getMe,
+  updateMe,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  passwordResetStatus,
+  logout,
+};
