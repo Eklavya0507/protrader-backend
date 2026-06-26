@@ -9,6 +9,7 @@ if (process.env.NODE_ENV !== "production") {
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const helmet = require("helmet");
 
 dotenv.config();
 
@@ -18,7 +19,33 @@ const journalRoutes = require("./routes/journalRoutes");
 const settingRoutes = require("./routes/settingRoutes");
 const authRoutes = require("./routes/authRoutes");
 
+const {
+  requestId,
+  validateRequestInput,
+} = require("./middleware/requestSecurity");
+
+const {
+  apiRateLimiter,
+} = require("./middleware/apiRateLimiter");
+
+const {
+  notFoundHandler,
+  errorHandler,
+} = require("./middleware/errorHandler");
+
 const app = express();
+
+const isProduction = process.env.NODE_ENV === "production";
+const requestBodyLimit =
+  String(process.env.REQUEST_BODY_LIMIT || "1mb").trim() || "1mb";
+
+// Render places the service behind one trusted reverse-proxy hop.
+// This keeps req.ip accurate for rate limiting without trusting arbitrary hops.
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
+
+app.disable("x-powered-by");
 
 const allowedOrigins = [
   "https://eklavya0507.github.io",
@@ -32,7 +59,9 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    return callback(new Error("Origin not allowed by CORS"));
+    const error = new Error("Origin not allowed by CORS");
+    error.code = "CORS_NOT_ALLOWED";
+    return callback(error);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
@@ -40,16 +69,48 @@ const corsOptions = {
     "Authorization",
     "X-Client-Timezone",
   ],
+  optionsSuccessStatus: 204,
+  maxAge: 86400,
 };
 
+app.use(requestId);
+
+app.use(
+  helmet({
+    // The frontend is hosted on GitHub Pages and consumes this JSON API.
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// General protection for every API endpoint. Login also keeps its stricter
+// Batch 1 limiter inside routes/authRoutes.js.
+app.use("/api", apiRateLimiter);
+
+app.use(
+  express.json({
+    limit: requestBodyLimit,
+    strict: true,
+    type: ["application/json", "application/*+json"],
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: false,
+    limit: requestBodyLimit,
+    parameterLimit: 200,
+  })
+);
+
+app.use(validateRequestInput);
 
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
     message: "ProTrade Backend Running",
+    requestId: req.requestId,
   });
 });
 
@@ -58,6 +119,7 @@ app.get("/api/health", (req, res) => {
     success: true,
     server: "running",
     database: "connected",
+    requestId: req.requestId,
   });
 });
 
@@ -66,12 +128,8 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/auth", authRoutes);
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-  });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
