@@ -1,7 +1,7 @@
 const dns = require("node:dns");
 
 // Windows local DNS workaround.
-// Render automatically uses NODE_ENV=production, so this won't run there.
+// Render automatically uses NODE_ENV=production, so this will not run there.
 if (process.env.NODE_ENV !== "production") {
   dns.setServers(["8.8.8.8", "8.8.4.4"]);
 }
@@ -20,30 +20,32 @@ const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
-// Middleware
 const allowedOrigins = [
   "https://eklavya0507.github.io",
   "http://127.0.0.1:5500",
   "http://localhost:5500",
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      return callback(new Error("Origin not allowed by CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+    return callback(new Error("Origin not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Client-Timezone",
+  ],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Main route
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -51,7 +53,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// Render health check route
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -60,13 +61,11 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// API routes
 app.use("/api/trades", tradeRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/auth", authRoutes);
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
