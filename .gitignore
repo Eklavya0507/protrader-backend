@@ -3,3 +3,9 @@ node_modules/
 uploads/
 *.log
 test.js
+
+# Local database backups
+backups/
+*.archive
+*.archive.gz
+protrade-*.manifest.json
