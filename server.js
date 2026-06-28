@@ -20,6 +20,7 @@ const settingRoutes = require("./routes/settingRoutes");
 const authRoutes = require("./routes/authRoutes");
 const accountRoutes = require("./routes/accountRoutes");
 const securityRoutes = require("./routes/securityRoutes");
+const securityAlertRoutes = require("./routes/securityAlertRoutes");
 
 const {
   requestId,
@@ -135,6 +136,7 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/account", accountRoutes);
+app.use("/api/security/alerts", securityAlertRoutes);
 app.use("/api/security", securityRoutes);
 
 app.use(notFoundHandler);

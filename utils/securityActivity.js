@@ -110,6 +110,8 @@ const cleanMetadata = (value) => {
     "sessionAction",
     "completed",
     "recoveryCodeUsed",
+    "newDeviceDetected",
+    "securityAlertQueued",
   ]);
 
   const result = {};
@@ -174,7 +176,24 @@ const recordSecurityEvent = async ({
 
 const safeRecordSecurityEvent = async (payload) => {
   try {
-    return await recordSecurityEvent(payload);
+    const event = await recordSecurityEvent(payload);
+
+    if (event) {
+      try {
+        const {
+          safeEvaluateSecurityAlert,
+        } = require("./securityAlertEngine");
+
+        await safeEvaluateSecurityAlert({ event });
+      } catch (alertError) {
+        console.error(
+          "Security alert integration failed:",
+          alertError.message
+        );
+      }
+    }
+
+    return event;
   } catch (error) {
     console.error("Security activity logging failed:", error.message);
     return null;

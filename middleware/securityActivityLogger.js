@@ -3,6 +3,10 @@
 const User = require("../models/User");
 const AccountAction = require("../models/AccountAction");
 const SecurityEvent = require("../models/SecurityEvent");
+const SecurityAlert = require("../models/SecurityAlert");
+const SecurityAlertPreference = require(
+  "../models/SecurityAlertPreference"
+);
 const {
   verifyTwoFactorLoginChallenge,
 } = require("../utils/twoFactor");
@@ -28,6 +32,8 @@ const safeResponseSnapshot = (body) => ({
     : null,
   dataId: String(body?.data?.id || body?.data?._id || ""),
   dataEmail: String(body?.data?.email || ""),
+  newDeviceDetected: body?.newDeviceDetected === true,
+  securityAlertQueued: body?.securityAlertQueued === true,
 });
 
 const activityDescriptor = (req, statusCode, body) => {
@@ -199,6 +205,23 @@ const activityDescriptor = (req, statusCode, body) => {
       "Secure device session started",
       "Secure session start failed"
     );
+  }
+
+  if (
+    path === "/api/auth/sessions/refresh" &&
+    method === "POST" &&
+    failed &&
+    body?.code === "REFRESH_TOKEN_REUSED"
+  ) {
+    return {
+      eventType: "refresh_token_reuse",
+      outcome: "failure",
+      severity: "critical",
+      title: "Old refresh token was reused",
+      message:
+        body?.message ||
+        "A device session was revoked after refresh-token reuse.",
+    };
   }
 
   if (
@@ -397,9 +420,17 @@ const securityActivityLogger = (req, res, next) => {
           res.statusCode < 400 &&
           req.user?._id
         ) {
-          await SecurityEvent.deleteMany({
-            user: req.user._id,
-          });
+          await Promise.all([
+            SecurityEvent.deleteMany({
+              user: req.user._id,
+            }),
+            SecurityAlert.deleteMany({
+              user: req.user._id,
+            }),
+            SecurityAlertPreference.deleteMany({
+              user: req.user._id,
+            }),
+          ]);
           return;
         }
 
@@ -431,6 +462,10 @@ const securityActivityLogger = (req, res, next) => {
             completed: responseBody?.completed === true,
             recoveryCodeUsed:
               responseBody?.recoveryCodesRemaining !== null,
+            newDeviceDetected:
+              responseBody?.newDeviceDetected === true,
+            securityAlertQueued:
+              responseBody?.securityAlertQueued === true,
           },
         });
       } catch (error) {
