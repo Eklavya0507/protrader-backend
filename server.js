@@ -19,6 +19,7 @@ const journalRoutes = require("./routes/journalRoutes");
 const settingRoutes = require("./routes/settingRoutes");
 const authRoutes = require("./routes/authRoutes");
 const accountRoutes = require("./routes/accountRoutes");
+const securityRoutes = require("./routes/securityRoutes");
 
 const {
   requestId,
@@ -33,6 +34,9 @@ const {
   notFoundHandler,
   errorHandler,
 } = require("./middleware/errorHandler");
+const {
+  securityActivityLogger,
+} = require("./middleware/securityActivityLogger");
 
 const app = express();
 
@@ -107,6 +111,7 @@ app.use(
 );
 
 app.use(validateRequestInput);
+app.use(securityActivityLogger);
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -130,6 +135,7 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/account", accountRoutes);
+app.use("/api/security", securityRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
