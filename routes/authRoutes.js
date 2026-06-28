@@ -17,6 +17,15 @@ const {
 } = require("../controllers/authController");
 
 const {
+  getTwoFactorStatus,
+  startTwoFactorSetup,
+  enableTwoFactor,
+  verifyTwoFactorLogin,
+  disableTwoFactor,
+  regenerateRecoveryCodes,
+} = require("../controllers/twoFactorController");
+
+const {
   startSession,
   refreshSession,
   listSessions,
@@ -31,18 +40,37 @@ const {
 
 const { protect } = require("../middleware/authMiddleware");
 const { loginRateLimiter } = require("../middleware/loginRateLimiter");
+const {
+  twoFactorRateLimiter,
+} = require("../middleware/twoFactorRateLimiter");
 
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", loginRateLimiter, login);
 router.post("/google", googleLogin);
+router.post(
+  "/2fa/login/verify",
+  twoFactorRateLimiter,
+  verifyTwoFactorLogin
+);
 router.post("/verify-email", verifyEmail);
 router.post("/verification-status", verificationStatus);
 router.post("/resend-verification", resendVerification);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.post("/password-reset-status", passwordResetStatus);
+
+// Authenticator two-factor authentication.
+router.get("/2fa/status", protect, getTwoFactorStatus);
+router.post("/2fa/setup", protect, startTwoFactorSetup);
+router.post("/2fa/enable", protect, enableTwoFactor);
+router.post("/2fa/disable", protect, disableTwoFactor);
+router.post(
+  "/2fa/recovery-codes/regenerate",
+  protect,
+  regenerateRecoveryCodes
+);
 
 // Device and refresh-session routes.
 router.post("/sessions/refresh", refreshSession);

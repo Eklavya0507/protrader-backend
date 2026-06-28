@@ -5,6 +5,9 @@ const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const { sendEmail } = require("../utils/sendEmail");
 const { revokeAllUserSessions } = require("../utils/sessionManager");
+const {
+  createTwoFactorLoginChallenge,
+} = require("../utils/twoFactor");
 
 const RESET_TOKEN_MINUTES = 15;
 const EMAIL_VERIFICATION_HOURS = 24;
@@ -143,6 +146,7 @@ const publicUser = (user) => ({
   createdAt: user.createdAt,
   authProvider: user.authProvider,
   avatarUrl: user.avatarUrl || "",
+  twoFactorEnabled: user.twoFactorEnabled === true,
   updatedAt: user.updatedAt,
 });
 
@@ -534,9 +538,31 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.twoFactorEnabled === true) {
+      await user.save({ validateBeforeSave: false });
+      req.resetLoginRateLimit?.();
+
+      const challenge = createTwoFactorLoginChallenge(
+        user,
+        "password"
+      );
+
+      return res.status(200).json({
+        success: true,
+        code: "TWO_FACTOR_REQUIRED",
+        requiresTwoFactor: true,
+        message: "Enter your authenticator or recovery code.",
+        challengeToken: challenge.token,
+        expiresInSeconds: challenge.expiresInSeconds,
+        data: {
+          email: user.email,
+          twoFactorEnabled: true,
+        },
+      });
+    }
+
     user.lastLoginAt = new Date();
     await user.save({ validateBeforeSave: false });
-
     req.resetLoginRateLimit?.();
 
     const token = createToken(user);
@@ -605,7 +631,10 @@ const googleLogin = async (req, res) => {
       user.emailVerificationToken = null;
       user.emailVerificationExpires = null;
       clearLoginProtection(user);
-      user.lastLoginAt = new Date();
+
+      if (user.twoFactorEnabled !== true) {
+        user.lastLoginAt = new Date();
+      }
 
       if (!user.name && googleProfile.name) {
         user.name = googleProfile.name;
@@ -626,6 +655,26 @@ const googleLogin = async (req, res) => {
       });
 
       isNewAccount = true;
+    }
+
+    if (user.twoFactorEnabled === true) {
+      const challenge = createTwoFactorLoginChallenge(
+        user,
+        "google"
+      );
+
+      return res.status(200).json({
+        success: true,
+        code: "TWO_FACTOR_REQUIRED",
+        requiresTwoFactor: true,
+        message: "Enter your authenticator or recovery code.",
+        challengeToken: challenge.token,
+        expiresInSeconds: challenge.expiresInSeconds,
+        data: {
+          email: user.email,
+          twoFactorEnabled: true,
+        },
+      });
     }
 
     const token = createToken(user);
@@ -1236,7 +1285,19 @@ const resetPassword = async (req, res) => {
     };
 
     if (!waitingOnOriginalDevice) {
-      response.token = createToken(user);
+      if (user.twoFactorEnabled === true) {
+        const challenge = createTwoFactorLoginChallenge(
+          user,
+          "password-reset"
+        );
+
+        response.code = "TWO_FACTOR_REQUIRED";
+        response.requiresTwoFactor = true;
+        response.challengeToken = challenge.token;
+        response.expiresInSeconds = challenge.expiresInSeconds;
+      } else {
+        response.token = createToken(user);
+      }
     }
 
     res.status(200).json(response);

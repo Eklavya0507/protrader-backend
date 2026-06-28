@@ -121,6 +121,56 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    // Authenticator two-factor authentication.
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecretEncrypted: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    twoFactorPendingSecretEncrypted: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    twoFactorPendingExpires: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+    twoFactorRecoveryCodeHashes: {
+      type: [String],
+      select: false,
+      default: [],
+    },
+    twoFactorEnabledAt: {
+      type: Date,
+      default: null,
+    },
+    twoFactorLastUsedAt: {
+      type: Date,
+      default: null,
+    },
+    twoFactorLastUsedCounter: {
+      type: Number,
+      select: false,
+      default: null,
+    },
+    twoFactorFailedAttempts: {
+      type: Number,
+      min: 0,
+      select: false,
+      default: 0,
+    },
+    twoFactorLockUntil: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
 
     passwordResetToken: {
       type: String,
