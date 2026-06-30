@@ -256,10 +256,10 @@ const createSession = async ({ user, req, revokeSession = null }) => {
 
   const metadata = getSessionMetadata(req);
   const { legacyFingerprintHash, ...storedMetadata } = metadata;
-  const fingerprintCandidates = [
-    metadata.fingerprintHash,
-    legacyFingerprintHash,
-  ].filter(Boolean);
+  const fingerprintCandidates =
+    metadata.fingerprintHash === legacyFingerprintHash
+      ? [legacyFingerprintHash].filter(Boolean)
+      : [metadata.fingerprintHash];
 
   const [previousMatchingSession, hasSessionHistory] = await Promise.all([
     Session.findOne({
