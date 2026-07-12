@@ -21,6 +21,7 @@ const authRoutes = require("./routes/authRoutes");
 const accountRoutes = require("./routes/accountRoutes");
 const securityRoutes = require("./routes/securityRoutes");
 const securityAlertRoutes = require("./routes/securityAlertRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 const {
   requestId,
@@ -138,6 +139,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/account", accountRoutes);
 app.use("/api/security/alerts", securityAlertRoutes);
 app.use("/api/security", securityRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
