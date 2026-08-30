@@ -132,6 +132,16 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Backward-compatible health alias for older frontend builds/cached GitHub Pages.
+app.get("/api/route-test", (req, res) => {
+  res.status(200).json({
+    success: true,
+    server: "running",
+    database: "connected",
+    requestId: req.requestId,
+  });
+});
+
 app.use("/api/trades", tradeRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/settings", settingRoutes);

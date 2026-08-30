@@ -40,7 +40,7 @@ const shouldSkip = (req) => {
     return true;
   }
 
-  return req.originalUrl === "/api/health";
+  return ["/api/health", "/api/route-test"].includes(req.originalUrl);
 };
 
 const apiRateLimiter = (req, res, next) => {

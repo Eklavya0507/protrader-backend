@@ -1,0 +1,10 @@
+ProTrader Backend - Corrected Complete Build
+
+Corrections applied:
+1. Existing /api/health remains the canonical health endpoint.
+2. Added /api/route-test as a backward-compatible health alias for older/cached frontend builds.
+3. Excluded both health endpoints from the general API rate limiter so status checks do not consume user API quota.
+
+Validation:
+- All backend JavaScript files pass Node.js syntax validation.
+- Existing routes/controllers/models/authentication/MongoDB configuration are preserved.
