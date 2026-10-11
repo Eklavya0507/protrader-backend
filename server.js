@@ -54,10 +54,16 @@ if (isProduction) {
 
 app.disable("x-powered-by");
 
+// Capacitor Android serves packaged HTML at https://localhost by default.
+// Keep browser origins and mobile origins narrowly allowlisted.
+// CORS is not authentication: all protected endpoints still require auth.
 const allowedOrigins = [
   "https://eklavya0507.github.io",
   "http://127.0.0.1:5500",
   "http://localhost:5500",
+  "https://localhost",   // Capacitor 7+ Android default
+  "http://localhost",    // Alternative Android scheme
+  "capacitor://localhost", // Future iOS support
 ];
 
 const corsOptions = {
